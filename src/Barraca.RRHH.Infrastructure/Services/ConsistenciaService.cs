@@ -1,7 +1,9 @@
 using Barraca.RRHH.Application.DTOs;
 using Barraca.RRHH.Application.Interfaces;
 using Barraca.RRHH.Domain.Entities;
+using Barraca.RRHH.Domain.Enums;
 using Barraca.RRHH.Infrastructure.Data;
+using Barraca.RRHH.Infrastructure.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace Barraca.RRHH.Infrastructure.Services;
@@ -225,16 +227,14 @@ public class ConsistenciaService : IConsistenciaService
             .GroupBy(x => x.FuncionarioId)
             .ToDictionary(
                 g => g.Key,
-                g => g.Select(y => (y.Tipo ?? string.Empty).Trim().ToUpperInvariant())
-                    .Where(y => !string.IsNullOrWhiteSpace(y))
+                g => g.Select(y => TipoObraParser.Parse(y.Tipo))
                     .ToHashSet());
 
         var pagosTiposPorFuncionario = pagosTiposRaw
             .GroupBy(x => x.FuncionarioId)
             .ToDictionary(
                 g => g.Key,
-                g => g.Select(y => (y.Tipo ?? string.Empty).Trim().ToUpperInvariant())
-                    .Where(y => !string.IsNullOrWhiteSpace(y))
+                g => g.Select(y => TipoObraParser.Parse(y.Tipo))
                     .ToHashSet());
 
         foreach (var funcionarioId in horasTiposPorFuncionario.Keys.Intersect(pagosTiposPorFuncionario.Keys))
@@ -261,7 +261,7 @@ public class ConsistenciaService : IConsistenciaService
                 RegistrosPagos = pagosInfo.RegistrosPagos,
                 TotalHoras = horasInfo.TotalHoras,
                 TotalPagos = pagosInfo.TotalPagos,
-                Mensaje = $"Tipos en HORAS ({string.Join(", ", tiposHoras.OrderBy(x => x))}) no coinciden con tipos en PAGOS ({string.Join(", ", tiposPagos.OrderBy(x => x))})."
+                Mensaje = $"Tipos en HORAS ({string.Join(", ", tiposHoras.OrderBy(x => x).Select(FormatearTipoObra))}) no coinciden con tipos en PAGOS ({string.Join(", ", tiposPagos.OrderBy(x => x).Select(FormatearTipoObra))})."
             });
         }
 
@@ -543,4 +543,13 @@ public class ConsistenciaService : IConsistenciaService
 
         await _db.SaveChangesAsync();
     }
+
+    private static string FormatearTipoObra(TipoObra tipo) => tipo switch
+    {
+        TipoObra.Construccion => "CONSTRUCCION",
+        TipoObra.IndustriaYComercio => "INDUSTRIA Y COMERCIO",
+        TipoObra.Administracion => "ADMINISTRACION",
+        TipoObra.NA => "N-A",
+        _ => tipo.ToString().ToUpperInvariant()
+    };
 }
