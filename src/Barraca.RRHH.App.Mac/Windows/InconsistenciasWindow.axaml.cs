@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Avalonia;
 using Avalonia.Controls;
 using Barraca.RRHH.Application.DTOs;
 
@@ -67,7 +68,8 @@ public partial class InconsistenciasWindow : Window
                     CategoriaOTipo = item.CategoriaOTipo,
                     MontoOHoras = item.MontoOHoras,
                     Observacion = item.Observacion,
-                    NumeroFuncionarioDestino = item.NumeroFuncionarioDestino
+                    NumeroFuncionarioDestino = item.NumeroFuncionarioDestino,
+                    BaseRowBackground = Detalles.Count % 2 == 0 ? "#FFFFFF" : "#F8FAFC"
                 };
 
                 row.MarcarComoGuardado();
@@ -127,6 +129,14 @@ public partial class InconsistenciasWindow : Window
             TxtEstado.Text = $"Error guardando todas las filas: {ex.Message}";
         }
     }
+
+    private void BodyScroll_ScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        if (HeaderScroll is null)
+            return;
+
+        HeaderScroll.Offset = new Vector(e.Offset.X, 0);
+    }
 }
 
 public sealed class DetalleEditableRow
@@ -136,6 +146,7 @@ public sealed class DetalleEditableRow
     private decimal _montoOHoras;
     private string _observacion = string.Empty;
     private string _numeroFuncionarioDestino = string.Empty;
+    private string _baseRowBackground = "#FFFFFF";
     private bool _isDirty;
 
     private string _originalCategoriaOTipo = string.Empty;
@@ -203,7 +214,17 @@ public sealed class DetalleEditableRow
         }
     }
 
-    public string RowBackground => IsDirty ? "#FFF6BF" : "#FFFFFF";
+    public string BaseRowBackground
+    {
+        get => _baseRowBackground;
+        set
+        {
+            if (SetField(ref _baseRowBackground, value))
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RowBackground)));
+        }
+    }
+
+    public string RowBackground => IsDirty ? "#FEF3C7" : BaseRowBackground;
 
     public void MarcarComoGuardado()
     {

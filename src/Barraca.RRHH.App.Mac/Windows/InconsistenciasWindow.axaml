@@ -7,6 +7,31 @@
   MinHeight="660"
         WindowStartupLocation="CenterOwner"
         Title="Inconsistencias detectadas">
+  <Window.Styles>
+    <Style Selector="TextBox.editor-cell">
+      <Setter Property="Background" Value="#FFFFFF"/>
+      <Setter Property="BorderBrush" Value="#BFDBFE"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="8,5"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="TextBox.editor-cell:focus">
+      <Setter Property="BorderBrush" Value="#2563EB"/>
+      <Setter Property="Background" Value="#EFF6FF"/>
+    </Style>
+    <Style Selector="Button.save-row">
+      <Setter Property="Background" Value="#1D4ED8"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Padding" Value="10,4"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="Button.save-row:pointerover">
+      <Setter Property="Background" Value="#1E40AF"/>
+    </Style>
+  </Window.Styles>
   <Grid Margin="14" RowDefinitions="Auto,*,Auto">
     <Border Background="White" Padding="12" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1">
       <StackPanel>
@@ -25,9 +50,9 @@
           <TextBlock DockPanel.Dock="Right" Text="Planilla editable de inconsistencias" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#334155"/>
         </DockPanel>
 
-        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" Margin="0,0,0,8">
+        <ScrollViewer x:Name="HeaderScroll" Grid.Row="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,10">
           <Border BorderBrush="#D1E3F8" BorderThickness="1" Background="#EFF6FF" CornerRadius="8" Padding="10">
-            <Grid ColumnDefinitions="180,70,180,80,70,70,220,170,110,170,120,90">
+            <Grid ColumnDefinitions="200,80,220,90,80,80,260,190,130,240,150,100" ColumnSpacing="8">
               <TextBlock Grid.Column="0" Text="Inconsistencia" FontWeight="SemiBold" Margin="0,0,8,0"/>
               <TextBlock Grid.Column="1" Text="Nro" FontWeight="SemiBold" Margin="0,0,8,0"/>
               <TextBlock Grid.Column="2" Text="Funcionario" FontWeight="SemiBold" Margin="0,0,8,0"/>
@@ -44,24 +69,26 @@
           </Border>
         </ScrollViewer>
 
-        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="BodyScroll" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" ScrollChanged="BodyScroll_ScrollChanged">
           <ItemsControl ItemsSource="{Binding Detalles}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border BorderBrush="#D9E2EC" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,10" Background="{Binding RowBackground}">
-                  <Grid ColumnDefinitions="180,70,180,80,70,70,220,170,110,170,120,90">
-                    <TextBlock Grid.Column="0" Text="{Binding TipoError}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#B45309" Margin="0,0,8,0" TextWrapping="Wrap"/>
+                <Border BorderBrush="#D9E2EC" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,10" Background="{Binding RowBackground}">
+                  <Grid ColumnDefinitions="200,80,220,90,80,80,260,190,130,240,150,100" ColumnSpacing="8">
+                    <Border Grid.Column="0" Background="#FFEDD5" BorderBrush="#FDBA74" BorderThickness="1" CornerRadius="999" Padding="8,4" HorizontalAlignment="Left" VerticalAlignment="Center" MaxWidth="190">
+                      <TextBlock Text="{Binding TipoError}" FontWeight="SemiBold" Foreground="#9A3412" TextTrimming="CharacterEllipsis"/>
+                    </Border>
                     <TextBlock Grid.Column="1" Text="{Binding NumeroFuncionario}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Grid.Column="2" Text="{Binding NombreFuncionario}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0"/>
                     <TextBlock Grid.Column="3" Text="{Binding Origen}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Grid.Column="4" Text="{Binding RegistroId}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Grid.Column="5" Text="{Binding FilaOrigen}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBlock Grid.Column="6" Text="{Binding Referencia}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0"/>
-                    <TextBox Grid.Column="7" Text="{Binding CategoriaOTipo}" Height="32" Margin="0,0,8,0"/>
-                    <TextBox Grid.Column="8" Text="{Binding MontoOHoras}" Height="32" Margin="0,0,8,0"/>
-                    <TextBox Grid.Column="9" Text="{Binding Observacion}" Height="32" Margin="0,0,8,0"/>
-                    <TextBox Grid.Column="10" Text="{Binding NumeroFuncionarioDestino}" Watermark="Opcional" Height="32" Margin="0,0,8,0"/>
-                    <Button Grid.Column="11" Content="Guardar" Click="GuardarFila_Click" Height="32"/>
+                    <TextBox Grid.Column="7" Text="{Binding CategoriaOTipo}" Height="36" Classes="editor-cell"/>
+                    <TextBox Grid.Column="8" Text="{Binding MontoOHoras}" Height="36" Classes="editor-cell"/>
+                    <TextBox Grid.Column="9" Text="{Binding Observacion}" Height="36" Classes="editor-cell"/>
+                    <TextBox Grid.Column="10" Text="{Binding NumeroFuncionarioDestino}" Watermark="Opcional" Height="36" Classes="editor-cell"/>
+                    <Button Grid.Column="11" Content="Guardar" Click="GuardarFila_Click" Height="36" Classes="save-row"/>
                   </Grid>
                 </Border>
               </DataTemplate>
