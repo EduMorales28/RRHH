@@ -13,10 +13,13 @@ DMG_PATH="${OUT_ROOT}/${APP_NAME// /-}-${RID}.dmg"
 
 mkdir -p "${OUT_ROOT}"
 
-echo "[1/4] Publicando ${PROJECT} para ${RID}"
+echo "[1/5] Restore ${PROJECT} para ${RID}"
+dotnet restore "${PROJECT}" -r "${RID}"
+
+echo "[2/5] Publicando ${PROJECT} para ${RID}"
 dotnet publish "${PROJECT}" --no-restore -c "${CONFIGURATION}" -r "${RID}" --self-contained true /p:PublishSingleFile=true -o "${PUBLISH_DIR}"
 
-echo "[2/4] Armando bundle .app"
+echo "[3/5] Armando bundle .app"
 rm -rf "${APP_DIR}"
 mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
 cp -R "${PUBLISH_DIR}/." "${APP_DIR}/Contents/MacOS/"
@@ -48,10 +51,10 @@ PLIST
 
 chmod +x "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}" || true
 
-echo "[3/4] Creando DMG"
+echo "[4/5] Creando DMG"
 rm -f "${DMG_PATH}"
 hdiutil create -volname "${APP_NAME}" -srcfolder "${APP_DIR}" -ov -format UDZO "${DMG_PATH}"
 
-echo "[4/4] Resultado"
+echo "[5/5] Resultado"
 echo "APP: ${APP_DIR}"
 echo "DMG: ${DMG_PATH}"

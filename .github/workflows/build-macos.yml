@@ -27,9 +27,6 @@ jobs:
           dotnet --version
           dotnet --list-sdks
 
-      - name: Restore macOS app graph
-        run: dotnet restore src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj
-
       - name: Package app and dmg (osx-arm64)
         run: |
           chmod +x scripts/package-macos.sh
