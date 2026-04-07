@@ -199,7 +199,8 @@ public class MainWindowViewModel : INotifyPropertyChanged
     {
         try
         {
-            var periodoNormalizado = NormalizarPeriodo(Periodo);
+            var periodoSugerido = await _periodoService.ObtenerPeriodoPredeterminadoAsync(Periodo);
+            var periodoNormalizado = NormalizarPeriodo(periodoSugerido);
             await _periodoService.AbrirPeriodoAsync(periodoNormalizado, "admin");
             await CargarPeriodosAsync();
             var dashboard = await _dashboardService.ObtenerResumenAsync(periodoNormalizado);

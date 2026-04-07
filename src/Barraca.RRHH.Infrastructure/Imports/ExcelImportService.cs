@@ -207,6 +207,7 @@ public class ExcelImportService : IExcelImportService
                         Descripcion = $"Período en fila ({periodoFila}) distinto al período activo ({periodoCodigo})."
                     });
                     incidencias++;
+                    continue;
                 }
 
                 var resultadoFuncionario = await ObtenerOCrearFuncionarioAsync(numeroFuncionario, nombreFuncionario);
@@ -342,6 +343,7 @@ public class ExcelImportService : IExcelImportService
                         Descripcion = $"Período en fila ({periodoFila}) distinto al período activo ({periodoCodigo})."
                     });
                     incidencias++;
+                    continue;
                 }
 
                 var resultadoFuncionario = await ResolverFuncionarioDesdePagoAsync(numeroFuncionario, nombreFuncionario);

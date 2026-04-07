@@ -10,9 +10,9 @@
   <Grid RowDefinitions="Auto,*,Auto" Background="#F3F4F6">
     <Border Grid.Row="0" Background="#0B7566" Padding="14">
       <DockPanel LastChildFill="False">
-        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
           <Border Width="64" Height="64" Background="White" CornerRadius="8" Padding="4" Margin="0,0,10,0">
-            <Image Source="avares://Barraca.RRHH.App.Mac/Assets/logo-morales.jpeg" Stretch="Uniform" />
+            <Image Source="avares://Barraca.RRHH.App.Mac/Assets/logo-morales.jpeg" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Border>
           <StackPanel>
             <TextBlock Text="Barraca RRHH v3" Foreground="{DynamicResource BrandTextOnDarkBrush}" FontSize="26" FontWeight="Bold" VerticalAlignment="Center" />
