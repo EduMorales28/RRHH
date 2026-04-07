@@ -44,9 +44,9 @@ public class DistribucionService : IDistribucionService
             .ToListAsync();
         var funcionariosMap = funcionarios.ToDictionary(x => x.Id, x => x);
 
-        // Base contable por funcionario: siempre adelanto + liquido + retencion.
-        var totalPorFuncionario = pagos
-            .GroupBy(x => x.FuncionarioId)
+        // Base contable por funcionario y tipo de obra: evita mezclar montos entre tipos.
+        var totalPorFuncionarioTipo = pagos
+            .GroupBy(x => (x.FuncionarioId, x.TipoObra))
             .ToDictionary(
                 g => g.Key,
                 g => g.Sum(x => x.Adelanto + x.Liquido + x.Retencion));
@@ -58,26 +58,35 @@ public class DistribucionService : IDistribucionService
 
         ValidarSedesParaAdministrativos(horasDistribuibles, obrasSedePorTipo);
 
-        var horasTotalesPorFuncionario = horasDistribuibles
-            .GroupBy(x => x.FuncionarioId)
-            .ToDictionary(g => g.Key, g => g.Sum(x => x.HorasEquivalentes));
-
-        var funcionariosConPagoSinHoras = totalPorFuncionario
-            .Where(x => x.Value > 0m && (!horasTotalesPorFuncionario.TryGetValue(x.Key, out var horasFunc) || horasFunc <= 0m))
+        var registrosDistribuibles = horasDistribuibles
+            .Select(x => new RegistroDistribuible
+            {
+                Hora = x,
+                ObraDestino = ObtenerObraDestinoParaDistribucion(x, obrasSedePorTipo)
+            })
             .ToList();
 
-        if (funcionariosConPagoSinHoras.Count > 0)
-        {
-            var detalle = string.Join("; ", funcionariosConPagoSinHoras.Select(x =>
-            {
-                if (funcionariosMap.TryGetValue(x.Key, out var f))
-                    return $"{f.NumeroFuncionario} - {f.Nombre}: total={x.Value:N2}, horas=0";
+        var horasTotalesPorFuncionarioTipo = registrosDistribuibles
+            .GroupBy(x => (x.Hora.FuncionarioId, x.ObraDestino.TipoObra))
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.Hora.HorasEquivalentes));
 
-                return $"FuncionarioId={x.Key}: total={x.Value:N2}, horas=0";
+        var funcionariosTipoConPagoSinHoras = totalPorFuncionarioTipo
+            .Where(x => x.Value > 0m
+                && (!horasTotalesPorFuncionarioTipo.TryGetValue(x.Key, out var horasFuncTipo) || horasFuncTipo <= 0m))
+            .ToList();
+
+        if (funcionariosTipoConPagoSinHoras.Count > 0)
+        {
+            var detalle = string.Join("; ", funcionariosTipoConPagoSinHoras.Select(x =>
+            {
+                if (funcionariosMap.TryGetValue(x.Key.FuncionarioId, out var f))
+                    return $"{f.NumeroFuncionario} - {f.Nombre} ({x.Key.TipoObra}): total={x.Value:N2}, horas=0";
+
+                return $"FuncionarioId={x.Key.FuncionarioId} ({x.Key.TipoObra}): total={x.Value:N2}, horas=0";
             }));
 
             throw new InvalidOperationException(
-                "No se puede distribuir: hay funcionarios con pagos y sin horas. " +
+                "No se puede distribuir: hay funcionario/tipo con pagos y sin horas. " +
                 "Corrige estos casos o asígnalos a un centro de costo especial. " +
                 $"Detalle: {detalle}");
         }
@@ -107,36 +116,41 @@ public class DistribucionService : IDistribucionService
         var lineasBase = new List<LineaDistribucionBase>();
         var controlPorFuncionario = new List<ControlFuncionario>();
 
-        foreach (var item in totalPorFuncionario.Where(x => x.Value > 0m).OrderBy(x => x.Key))
+        foreach (var item in totalPorFuncionarioTipo
+            .Where(x => x.Value > 0m)
+            .OrderBy(x => x.Key.FuncionarioId)
+            .ThenBy(x => x.Key.TipoObra))
         {
-            var funcionarioId = item.Key;
-            var totalFuncionario = item.Value;
+            var funcionarioId = item.Key.FuncionarioId;
+            var tipoObra = item.Key.TipoObra;
+            var totalFuncionarioTipo = item.Value;
 
-            if (!horasTotalesPorFuncionario.TryGetValue(funcionarioId, out var horasFuncionario) || horasFuncionario <= 0m)
+            if (!horasTotalesPorFuncionarioTipo.TryGetValue((funcionarioId, tipoObra), out var horasFuncionarioTipo) || horasFuncionarioTipo <= 0m)
                 continue;
 
-            var registrosFuncionario = horasDistribuibles
-                .Where(x => x.FuncionarioId == funcionarioId)
-                .OrderBy(x => x.Id)
+            var registrosFuncionarioTipo = registrosDistribuibles
+                .Where(x => x.Hora.FuncionarioId == funcionarioId && x.ObraDestino.TipoObra == tipoObra)
+                .OrderBy(x => x.Hora.Id)
                 .ToList();
 
-            var valorHoraFuncionario = totalFuncionario / horasFuncionario;
-            decimal sumaFuncionarioDistribuida = 0m;
+            var valorHoraFuncionarioTipo = totalFuncionarioTipo / horasFuncionarioTipo;
+            decimal sumaFuncionarioTipoDistribuida = 0m;
 
-            for (var i = 0; i < registrosFuncionario.Count; i++)
+            for (var i = 0; i < registrosFuncionarioTipo.Count; i++)
             {
-                var reg = registrosFuncionario[i];
-                var montoRegistro = reg.HorasEquivalentes * valorHoraFuncionario;
+                var registro = registrosFuncionarioTipo[i];
+                var reg = registro.Hora;
+                var montoRegistro = reg.HorasEquivalentes * valorHoraFuncionarioTipo;
 
-                if (i == registrosFuncionario.Count - 1)
+                if (i == registrosFuncionarioTipo.Count - 1)
                 {
-                    var ajuste = totalFuncionario - (sumaFuncionarioDistribuida + montoRegistro);
+                    var ajuste = totalFuncionarioTipo - (sumaFuncionarioTipoDistribuida + montoRegistro);
                     montoRegistro += ajuste;
                 }
 
-                sumaFuncionarioDistribuida += montoRegistro;
+                sumaFuncionarioTipoDistribuida += montoRegistro;
 
-                var obra = ObtenerObraDestinoParaDistribucion(reg, obrasSedePorTipo);
+                var obra = registro.ObraDestino;
                 lineasBase.Add(new LineaDistribucionBase
                 {
                     TipoObra = obra.TipoObra,
@@ -152,8 +166,9 @@ public class DistribucionService : IDistribucionService
             controlPorFuncionario.Add(new ControlFuncionario
             {
                 FuncionarioId = funcionarioId,
-                TotalFuncionario = totalFuncionario,
-                TotalDistribuido = sumaFuncionarioDistribuida
+                TipoObra = tipoObra,
+                TotalFuncionario = totalFuncionarioTipo,
+                TotalDistribuido = sumaFuncionarioTipoDistribuida
             });
         }
 
@@ -161,6 +176,7 @@ public class DistribucionService : IDistribucionService
             .Select(x => new
             {
                 x.FuncionarioId,
+                x.TipoObra,
                 x.TotalFuncionario,
                 x.TotalDistribuido,
                 Diferencia = x.TotalFuncionario - x.TotalDistribuido
@@ -173,9 +189,9 @@ public class DistribucionService : IDistribucionService
             var detalle = string.Join("; ", diferenciasFuncionario.Select(x =>
             {
                 if (funcionariosMap.TryGetValue(x.FuncionarioId, out var f))
-                    return $"{f.NumeroFuncionario} - {f.Nombre}: esperado={x.TotalFuncionario:N2}, distribuido={x.TotalDistribuido:N2}, dif={x.Diferencia:N2}";
+                    return $"{f.NumeroFuncionario} - {f.Nombre} ({x.TipoObra}): esperado={x.TotalFuncionario:N2}, distribuido={x.TotalDistribuido:N2}, dif={x.Diferencia:N2}";
 
-                return $"FuncionarioId={x.FuncionarioId}: esperado={x.TotalFuncionario:N2}, distribuido={x.TotalDistribuido:N2}, dif={x.Diferencia:N2}";
+                return $"FuncionarioId={x.FuncionarioId} ({x.TipoObra}): esperado={x.TotalFuncionario:N2}, distribuido={x.TotalDistribuido:N2}, dif={x.Diferencia:N2}";
             }));
 
             throw new InvalidOperationException("Error de integridad por funcionario en distribución. " + detalle);
@@ -234,9 +250,9 @@ public class DistribucionService : IDistribucionService
             {
                 var diff = x.TotalFuncionario - x.TotalDistribuido;
                 if (funcionariosMap.TryGetValue(x.FuncionarioId, out var f))
-                    return $"{f.NumeroFuncionario} - {f.Nombre}: dif={diff:N2}";
+                    return $"{f.NumeroFuncionario} - {f.Nombre} ({x.TipoObra}): dif={diff:N2}";
 
-                return $"FuncionarioId={x.FuncionarioId}: dif={diff:N2}";
+                return $"FuncionarioId={x.FuncionarioId} ({x.TipoObra}): dif={diff:N2}";
             }));
 
             throw new InvalidOperationException(
@@ -354,8 +370,15 @@ public class DistribucionService : IDistribucionService
     private sealed class ControlFuncionario
     {
         public int FuncionarioId { get; set; }
+        public TipoObra TipoObra { get; set; }
         public decimal TotalFuncionario { get; set; }
         public decimal TotalDistribuido { get; set; }
+    }
+
+    private sealed class RegistroDistribuible
+    {
+        public HoraMensual Hora { get; set; } = default!;
+        public Obra ObraDestino { get; set; } = default!;
     }
 
     private static string NormalizarCategoria(string? categoria)
