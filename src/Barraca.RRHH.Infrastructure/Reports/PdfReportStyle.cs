@@ -54,22 +54,6 @@ public static class PdfReportStyle
                     c.Item().Text($"Periodo: {periodo}    Generado: {generated:yyyy-MM-dd HH:mm}").FontSize(9).FontColor(MediumGrey);
                 });
             });
-
-            if (summary is { Length: > 0 })
-            {
-                col.Item().PaddingTop(6).Row(r =>
-                {
-                    foreach (var item in summary)
-                    {
-                        r.RelativeItem().Element(x =>
-                            x.Background(Colors.Grey.Lighten4).Border(1).BorderColor(Colors.Grey.Lighten2).Padding(6).Column(s =>
-                            {
-                                s.Item().Text(item.Label).FontSize(8).FontColor(Colors.Grey.Darken1);
-                                s.Item().Text(item.Value).Bold().FontSize(10);
-                            }));
-                    }
-                });
-            }
         });
     }
 
@@ -130,12 +114,22 @@ public static class PdfReportStyle
 
     public static IContainer TableHeaderCell(IContainer container)
     {
-        return container.Background(Colors.Grey.Lighten3).Padding(8).BorderBottom(1).BorderColor(MediumGrey);
+        return container
+            .Background(Colors.Grey.Lighten3)
+            .Padding(8)
+            .BorderBottom(1)
+            .BorderColor(MediumGrey)
+            .DefaultTextStyle(x => x.FontSize(9));
     }
 
     public static IContainer TableCell(IContainer container)
     {
-        return container.PaddingVertical(6).BorderBottom(1).BorderColor(Colors.Grey.Lighten4).PaddingHorizontal(4);
+        return container
+            .PaddingVertical(6)
+            .BorderBottom(1)
+            .BorderColor(Colors.Grey.Lighten4)
+            .PaddingHorizontal(4)
+            .DefaultTextStyle(x => x.FontSize(9));
     }
 
     public static void TotalBox(IContainer container, string label, string value)

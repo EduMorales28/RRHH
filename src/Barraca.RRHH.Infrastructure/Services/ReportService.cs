@@ -377,7 +377,7 @@ public class ReportService : IReportService
                                 {
                                     var obra = obraGroup.First().Obra;
 
-                                    tipoCol.Item().PaddingTop(8).Element(obraContainer =>
+                                    tipoCol.Item().PaddingTop(8).EnsureSpace(180).Element(obraContainer =>
                                         obraContainer.Border(1).BorderColor(Colors.Grey.Lighten2).Padding(8).Column(obraCol =>
                                         {
                                             obraCol.Item().Element(x =>
@@ -477,7 +477,7 @@ public class ReportService : IReportService
                         ? 0m
                         : Math.Round(totalGeneral / totalHorasGeneral, 2, MidpointRounding.AwayFromZero);
 
-                    col.Item().PaddingTop(10).Element(c =>
+                    col.Item().PaddingTop(10).EnsureSpace(90).Element(c =>
                         c.Border(1).BorderColor(PdfReportStyle.BorderGreen).Padding(8).Column(summary =>
                         {
                             summary.Item().Element(x => PdfReportStyle.SectionTitle(x, "RESUMEN GENERAL DE DISTRIBUCION"));
@@ -510,7 +510,7 @@ public class ReportService : IReportService
                         }));
 
                     // TOTAL GENERAL final box / CIERRE DEL REPORTE
-                    col.Item().PaddingTop(14).Element(x => PdfReportStyle.GreenTotalBox(x, "CIERRE DEL REPORTE - TOTAL GENERAL:", totalGeneral.ToString("N2")));
+                    col.Item().PaddingTop(14).EnsureSpace(40).Element(x => PdfReportStyle.GreenTotalBox(x, "CIERRE DEL REPORTE - TOTAL GENERAL:", totalGeneral.ToString("N2")));
                 });
 
                 PdfReportStyle.FooterWithMeta(page.Footer(), periodo);

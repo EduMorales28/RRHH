@@ -57,26 +57,58 @@ public partial class MainWindow : Window
 
     private async void SeleccionarFuncionarios_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (DataContext is MainWindowViewModel vm)
-            vm.RutaFuncionarios = await SeleccionarArchivoExcelAsync() ?? vm.RutaFuncionarios;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        var ruta = await SeleccionarArchivoExcelAsync();
+        if (string.IsNullOrWhiteSpace(ruta))
+            return;
+
+        vm.RutaFuncionarios = ruta;
+        if (vm.ImportarFuncionariosCommand.CanExecute(null))
+            vm.ImportarFuncionariosCommand.Execute(null);
     }
 
     private async void SeleccionarObras_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (DataContext is MainWindowViewModel vm)
-            vm.RutaObras = await SeleccionarArchivoExcelAsync() ?? vm.RutaObras;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        var ruta = await SeleccionarArchivoExcelAsync();
+        if (string.IsNullOrWhiteSpace(ruta))
+            return;
+
+        vm.RutaObras = ruta;
+        if (vm.ImportarObrasCommand.CanExecute(null))
+            vm.ImportarObrasCommand.Execute(null);
     }
 
     private async void SeleccionarHoras_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (DataContext is MainWindowViewModel vm)
-            vm.RutaHoras = await SeleccionarArchivoExcelAsync() ?? vm.RutaHoras;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        var ruta = await SeleccionarArchivoExcelAsync();
+        if (string.IsNullOrWhiteSpace(ruta))
+            return;
+
+        vm.RutaHoras = ruta;
+        if (vm.ImportarHorasCommand.CanExecute(null))
+            vm.ImportarHorasCommand.Execute(null);
     }
 
     private async void SeleccionarPagos_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (DataContext is MainWindowViewModel vm)
-            vm.RutaPagos = await SeleccionarArchivoExcelAsync() ?? vm.RutaPagos;
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        var ruta = await SeleccionarArchivoExcelAsync();
+        if (string.IsNullOrWhiteSpace(ruta))
+            return;
+
+        vm.RutaPagos = ruta;
+        if (vm.ImportarPagosCommand.CanExecute(null))
+            vm.ImportarPagosCommand.Execute(null);
     }
 
     private async void SeleccionarDestinoReportes_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
