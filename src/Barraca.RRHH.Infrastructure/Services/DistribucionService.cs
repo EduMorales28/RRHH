@@ -89,10 +89,54 @@ public class DistribucionService : IDistribucionService
                 .ThenBy(x => x.Categoria)
                 .ToList();
 
-            foreach (var item in agrupadas)
+            // Calcula montos por línea y ajusta diferencia de redondeo para que
+            // el total distribuido del tipo de obra cierre exactamente con el costo total.
+            var lineasCalculadas = agrupadas
+                .Select(item =>
+                {
+                    var porcentaje = item.HorasLinea / horasTotalesTipo;
+                    var monto = Math.Round(porcentaje * costoTotalTipo, 2, MidpointRounding.AwayFromZero);
+                    return new
+                    {
+                        item.ObraId,
+                        item.NumeroObra,
+                        item.NombreObra,
+                        item.Categoria,
+                        item.HorasLinea,
+                        Porcentaje = porcentaje,
+                        Monto = monto
+                    };
+                })
+                .ToList();
+
+            var totalDistribuido = lineasCalculadas.Sum(x => x.Monto);
+            var diferencia = Math.Round(costoTotalTipo - totalDistribuido, 2, MidpointRounding.AwayFromZero);
+
+            if (diferencia != 0m && lineasCalculadas.Count > 0)
             {
-                var porcentaje = item.HorasLinea / horasTotalesTipo;
-                var monto = Math.Round(porcentaje * costoTotalTipo, 2, MidpointRounding.AwayFromZero);
+                var idxAjuste = lineasCalculadas
+                    .Select((x, idx) => new { idx, x.HorasLinea })
+                    .OrderByDescending(x => x.HorasLinea)
+                    .First()
+                    .idx;
+
+                var target = lineasCalculadas[idxAjuste];
+                lineasCalculadas[idxAjuste] = new
+                {
+                    target.ObraId,
+                    target.NumeroObra,
+                    target.NombreObra,
+                    target.Categoria,
+                    target.HorasLinea,
+                    target.Porcentaje,
+                    Monto = target.Monto + diferencia
+                };
+            }
+
+            foreach (var item in lineasCalculadas)
+            {
+                var porcentaje = item.Porcentaje;
+                var monto = item.Monto;
                 var valorHora = item.HorasLinea == 0 ? 0 : Math.Round(monto / item.HorasLinea, 2, MidpointRounding.AwayFromZero);
                 var jornales = Math.Round(item.HorasLinea / 8.8m, 2, MidpointRounding.AwayFromZero);
 

@@ -77,3 +77,4 @@ Hoja: `PAGOS`
 - Distribución por obra:
 	- Base de cálculo por tipo de obra: costo total del tipo y horas equivalentes del tipo.
 	- Distribución interna por obra/categoría según participación de horas en el total del tipo.
+	- Se aplica ajuste de redondeo en una línea ancla para que la suma distribuida del tipo coincida exactamente con el costo total del tipo.
