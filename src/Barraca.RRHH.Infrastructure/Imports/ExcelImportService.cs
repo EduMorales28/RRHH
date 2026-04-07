@@ -167,7 +167,7 @@ public class ExcelImportService : IExcelImportService
             var existentes = _db.HorasMensuales.Where(x => x.PeriodoId == periodoEntity.Id);
             _db.HorasMensuales.RemoveRange(existentes);
 
-            foreach (var row in ws.RowsUsed().Skip(3))
+            foreach (var row in ws.RowsUsed().Where(r => r.RowNumber() >= 2))
             {
                 if (!row.Cell(1).TryGetValue<int>(out var idRegistro))
                 {
@@ -329,11 +329,14 @@ public class ExcelImportService : IExcelImportService
             var existentes = _db.PagosMensuales.Where(x => x.PeriodoId == periodoEntity.Id);
             _db.PagosMensuales.RemoveRange(existentes);
 
-            foreach (var row in ws.RowsUsed().Skip(3))
+            foreach (var row in ws.RowsUsed().Where(r => r.RowNumber() >= 2))
             {
                 // Layout real PAGOS:
                 // A ID, B Num Func, C Nombre, D Periodo, E Tipo Obra, F Cliente,
                 // G Adelanto, H Liquido, I Retencion, J TipoPago, K Total, L Obs
+                if (!row.Cell(1).TryGetValue<int>(out _))
+                    continue;
+
                 var numeroFuncionario = row.Cell(2).GetString().Trim();
                 if (string.IsNullOrWhiteSpace(numeroFuncionario))
                     continue;
