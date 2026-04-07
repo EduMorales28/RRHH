@@ -296,10 +296,35 @@ public class ReportService : IReportService
                                     });
                                 });
 
-                                section.Item().PaddingTop(6).Element(x => PdfReportStyle.HighlightedTotalRow(x, "Subtotal adelantos (tipo):", subtotalAdel.ToString("N2")));
-                                section.Item().Element(x => PdfReportStyle.HighlightedTotalRow(x, "Subtotal líquidos (tipo):", subtotalLiquido.ToString("N2")));
-                                section.Item().Element(x => PdfReportStyle.HighlightedTotalRow(x, "Subtotal retenciones (tipo):", subtotalRet.ToString("N2")));
-                                section.Item().Element(x => PdfReportStyle.HighlightedTotalRow(x, "TOTAL TIPO:", subtotalTipo.ToString("N2")));
+                                section.Item().PaddingTop(6).Element(x =>
+                                {
+                                    x.Table(t =>
+                                    {
+                                        t.ColumnsDefinition(cd =>
+                                        {
+                                            cd.RelativeColumn(2.4f);
+                                            cd.RelativeColumn(1f);
+                                            cd.RelativeColumn(1f);
+                                            cd.RelativeColumn(1f);
+                                            cd.RelativeColumn(1f);
+                                        });
+
+                                        t.Header(h =>
+                                        {
+                                            h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Subtotal (tipo de obra)"));
+                                            h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Adelantos").AlignRight());
+                                            h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Líquidos").AlignRight());
+                                            h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Retenciones").AlignRight());
+                                            h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Total").AlignRight());
+                                        });
+
+                                        t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text($"Subtotal ({grp.Key})").SemiBold());
+                                        t.Cell().Element(cell => PdfReportStyle.TableCell(cell).AlignRight().Text(subtotalAdel.ToString("N2")).SemiBold());
+                                        t.Cell().Element(cell => PdfReportStyle.TableCell(cell).AlignRight().Text(subtotalLiquido.ToString("N2")).SemiBold());
+                                        t.Cell().Element(cell => PdfReportStyle.TableCell(cell).AlignRight().Text(subtotalRet.ToString("N2")).SemiBold());
+                                        t.Cell().Element(cell => PdfReportStyle.TableCell(cell).AlignRight().Text(subtotalTipo.ToString("N2")).SemiBold());
+                                    });
+                                });
                             }));
 
             sectionIndex++;
