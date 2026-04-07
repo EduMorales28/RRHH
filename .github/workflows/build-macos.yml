@@ -53,7 +53,7 @@ jobs:
           security default-keychain -s "$KEYCHAIN_NAME"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
 
-      - name: Package app and dmg (osx-arm64)
+      - name: Package app and zip (osx-arm64)
         env:
           MACOS_CODESIGN_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
           MACOS_NOTARY_APPLE_ID: ${{ secrets.MACOS_NOTARY_APPLE_ID }}
@@ -61,7 +61,7 @@ jobs:
           MACOS_NOTARY_TEAM_ID: ${{ secrets.MACOS_NOTARY_TEAM_ID }}
         run: |
           chmod +x scripts/package-macos.sh
-          bash scripts/package-macos.sh osx-arm64 Release true
+          bash scripts/package-macos.sh osx-arm64 Release false
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
