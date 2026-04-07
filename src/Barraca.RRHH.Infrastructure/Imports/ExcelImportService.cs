@@ -371,18 +371,6 @@ public class ExcelImportService : IExcelImportService
                     creadosAutomaticos++;
                     incidencias++;
                 }
-                else if (resultadoFuncionario.vinculadoPorNombre)
-                {
-                    _db.IncidenciasImportacion.Add(new IncidenciaImportacion
-                    {
-                        TipoArchivo = "PAGOS",
-                        PeriodoCodigo = periodoCodigo,
-                        FilaOrigen = row.RowNumber(),
-                        CodigoReferencia = numeroFuncionario,
-                        Descripcion = $"Numero de funcionario '{numeroFuncionario}' no encontrado. Pago asociado por nombre a '{funcionario.NumeroFuncionario} - {funcionario.Nombre}'."
-                    });
-                    incidencias++;
-                }
 
                 var adelanto = LeerDecimal(row.Cell(7));
                 var liquido = LeerDecimal(row.Cell(8));
@@ -404,7 +392,7 @@ public class ExcelImportService : IExcelImportService
                 }
 
                 var totalCalculado = adelanto + liquido + retencion;
-                var totalGenerado = totalColumna > 0m ? totalColumna : totalCalculado;
+                var totalGenerado = totalCalculado;
                 if (totalColumna > 0m && totalColumna != totalCalculado)
                 {
                     _db.IncidenciasImportacion.Add(new IncidenciaImportacion
@@ -413,7 +401,7 @@ public class ExcelImportService : IExcelImportService
                         PeriodoCodigo = periodoCodigo,
                         FilaOrigen = row.RowNumber(),
                         CodigoReferencia = numeroFuncionario,
-                        Descripcion = $"Total columna K ({totalColumna:N2}) difiere de adelanto+liquido+retencion ({totalCalculado:N2}). Se usa columna K."
+                        Descripcion = $"Total columna K ({totalColumna:N2}) difiere de adelanto+liquido+retencion ({totalCalculado:N2}). Se usa adelanto+liquido+retencion como total válido."
                     });
                     incidencias++;
                 }
@@ -551,30 +539,16 @@ public class ExcelImportService : IExcelImportService
         }
     }
 
-    private async Task<(Funcionario entidad, bool creado, bool vinculadoPorNombre)> ResolverFuncionarioDesdePagoAsync(string numeroFuncionario, string nombreFuncionario)
+    private async Task<(Funcionario entidad, bool creado)> ResolverFuncionarioDesdePagoAsync(string numeroFuncionario, string nombreFuncionario)
     {
         var numero = (numeroFuncionario ?? string.Empty).Trim();
-        var nombre = (nombreFuncionario ?? string.Empty).Trim();
 
         var porNumero = await _db.Funcionarios.FirstOrDefaultAsync(x => x.NumeroFuncionario == numero);
         if (porNumero is not null)
-            return (porNumero, false, false);
+            return (porNumero, false);
 
-        if (!string.IsNullOrWhiteSpace(nombre))
-        {
-            var candidatos = await _db.Funcionarios
-                .Where(x => x.Nombre == nombre || x.Nombre.ToUpper() == nombre.ToUpper())
-                .OrderByDescending(x => x.Activo)
-                .ThenBy(x => x.NumeroFuncionario)
-                .Take(2)
-                .ToListAsync();
-
-            if (candidatos.Count == 1)
-                return (candidatos[0], false, true);
-        }
-
-        var creado = await ObtenerOCrearFuncionarioAsync(numero, nombre);
-        return (creado.entidad, creado.creado, false);
+        var creado = await ObtenerOCrearFuncionarioAsync(numero, nombreFuncionario);
+        return (creado.entidad, creado.creado);
     }
 
     private async Task<(Obra entidad, bool creado)> ObtenerOCrearObraAsync(string numeroObra, string nombreObra, string tipoOriginal, string cliente)
