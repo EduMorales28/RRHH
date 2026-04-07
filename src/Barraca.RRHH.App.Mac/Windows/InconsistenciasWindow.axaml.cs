@@ -11,7 +11,7 @@ public partial class InconsistenciasWindow : Window
     private readonly Func<ConsistenciaDetalleRegistroDto, Task> _guardarDetalle;
 
     public ObservableCollection<ConsistenciaFuncionarioErrorDto> Errores { get; } = new();
-    public ObservableCollection<ConsistenciaDetalleRegistroDto> Detalles { get; } = new();
+    public ObservableCollection<DetalleEditableRow> Detalles { get; } = new();
 
     public InconsistenciasWindow()
         : this(
@@ -36,7 +36,7 @@ public partial class InconsistenciasWindow : Window
         _guardarDetalle = guardarDetalle;
 
         TxtTitulo.Text = $"Periodo {periodo}: inconsistencias detectadas";
-        TxtSubtitulo.Text = "Debes corregir las inconsistencias antes de calcular distribución o generar reportes. Corrige en las planillas y vuelve a importar.";
+        TxtSubtitulo.Text = "Corrige aquí mismo en formato planilla y guarda. No necesitas volver a editar Excel ni reimportar.";
 
         Opened += async (_, _) => await RefrescarAsync();
     }
@@ -48,40 +48,37 @@ public partial class InconsistenciasWindow : Window
         Errores.Clear();
         Detalles.Clear();
         foreach (var error in errores)
+        {
             Errores.Add(error);
+            var detalleError = await _cargarDetalle(error.Tipo, error.FuncionarioId);
+            foreach (var item in detalleError)
+            {
+                Detalles.Add(new DetalleEditableRow
+                {
+                    TipoError = error.Tipo,
+                    NumeroFuncionario = error.NumeroFuncionario,
+                    NombreFuncionario = error.NombreFuncionario,
+                    Origen = item.Origen,
+                    RegistroId = item.RegistroId,
+                    FilaOrigen = item.FilaOrigen,
+                    Referencia = item.Referencia,
+                    CategoriaOTipo = item.CategoriaOTipo,
+                    MontoOHoras = item.MontoOHoras,
+                    Observacion = item.Observacion,
+                    NumeroFuncionarioDestino = item.NumeroFuncionarioDestino
+                });
+            }
+        }
 
         if (Errores.Count > 0)
-        {
-            LbErrores.SelectedIndex = 0;
-            await CargarDetalleSeleccionadoAsync();
-            TxtEstado.Text = $"Errores pendientes: {Errores.Count}";
-        }
+            TxtEstado.Text = $"Errores pendientes: {Errores.Count}. Filas cargadas en planilla: {Detalles.Count}.";
         else
-        {
             TxtEstado.Text = "Sin inconsistencias.";
-        }
-    }
-
-    private async Task CargarDetalleSeleccionadoAsync()
-    {
-        Detalles.Clear();
-
-        if (LbErrores.SelectedItem is not ConsistenciaFuncionarioErrorDto error)
-            return;
-
-        var detalle = await _cargarDetalle(error.Tipo, error.FuncionarioId);
-        foreach (var item in detalle)
-            Detalles.Add(item);
     }
 
     private async void Refrescar_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         await RefrescarAsync();
-    }
-
-    private async void Errores_SelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        await CargarDetalleSeleccionadoAsync();
     }
 
     private void Cerrar_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -91,12 +88,12 @@ public partial class InconsistenciasWindow : Window
 
     private async void GuardarFila_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        if (sender is not Button btn || btn.DataContext is not ConsistenciaDetalleRegistroDto fila)
+        if (sender is not Button btn || btn.DataContext is not DetalleEditableRow fila)
             return;
 
         try
         {
-            await _guardarDetalle(fila);
+            await _guardarDetalle(fila.ToDto());
             await RefrescarAsync();
             TxtEstado.Text = "Fila guardada correctamente.";
         }
@@ -111,7 +108,7 @@ public partial class InconsistenciasWindow : Window
         try
         {
             foreach (var fila in Detalles)
-                await _guardarDetalle(fila);
+                await _guardarDetalle(fila.ToDto());
 
             await RefrescarAsync();
             TxtEstado.Text = "Se guardaron todas las filas editadas.";
@@ -121,4 +118,31 @@ public partial class InconsistenciasWindow : Window
             TxtEstado.Text = $"Error guardando todas las filas: {ex.Message}";
         }
     }
+}
+
+public sealed class DetalleEditableRow
+{
+    public string TipoError { get; set; } = string.Empty;
+    public string NumeroFuncionario { get; set; } = string.Empty;
+    public string NombreFuncionario { get; set; } = string.Empty;
+    public string Origen { get; set; } = string.Empty;
+    public int RegistroId { get; set; }
+    public int FilaOrigen { get; set; }
+    public string Referencia { get; set; } = string.Empty;
+    public string CategoriaOTipo { get; set; } = string.Empty;
+    public decimal MontoOHoras { get; set; }
+    public string Observacion { get; set; } = string.Empty;
+    public string NumeroFuncionarioDestino { get; set; } = string.Empty;
+
+    public ConsistenciaDetalleRegistroDto ToDto() => new()
+    {
+        Origen = Origen,
+        RegistroId = RegistroId,
+        FilaOrigen = FilaOrigen,
+        Referencia = Referencia,
+        CategoriaOTipo = CategoriaOTipo,
+        MontoOHoras = MontoOHoras,
+        Observacion = Observacion,
+        NumeroFuncionarioDestino = NumeroFuncionarioDestino
+    };
 }
