@@ -15,7 +15,7 @@ internal sealed class Program
     {
         try
         {
-            var configuration = new ConfigurationBuilder()
+            var baseConfiguration = new ConfigurationBuilder()
                 .SetBasePath(AppContext.BaseDirectory)
                 .AddJsonFile("appsettings.json", optional: false)
                 .Build();
@@ -27,6 +27,19 @@ internal sealed class Program
             var reportesDir = Path.Combine(userDataRoot, "Reportes");
             Directory.CreateDirectory(logsDir);
             Directory.CreateDirectory(reportesDir);
+
+            var resolvedConnectionString = (baseConfiguration.GetConnectionString("DefaultConnection") ?? string.Empty)
+                .Replace("{DATA_DIR}", userDataRoot.Replace("\\", "/"), StringComparison.OrdinalIgnoreCase);
+
+            var overrides = new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:DefaultConnection"] = resolvedConnectionString
+            };
+
+            var configuration = new ConfigurationBuilder()
+                .AddConfiguration(baseConfiguration)
+                .AddInMemoryCollection(overrides)
+                .Build();
 
             var logFileName = Path.GetFileName(configuration["Logging:Path"] ?? "barraca-rrhh-.log");
             var logPath = Path.Combine(logsDir, logFileName);

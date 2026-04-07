@@ -12,8 +12,23 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddBarracaInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("Falta ConnectionStrings:DefaultConnection en la configuracion.");
+
+        var provider = configuration["Database:Provider"]?.Trim();
+
         services.AddDbContext<BarracaDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+        {
+            if (string.Equals(provider, "Sqlite", StringComparison.OrdinalIgnoreCase)
+                || connectionString.Contains("Data Source=", StringComparison.OrdinalIgnoreCase))
+            {
+                options.UseSqlite(connectionString);
+            }
+            else
+            {
+                options.UseSqlServer(connectionString);
+            }
+        });
 
         services.AddScoped<IExcelImportService, ExcelImportService>();
         services.AddScoped<IDistribucionService, DistribucionService>();

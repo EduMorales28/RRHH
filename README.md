@@ -59,7 +59,10 @@ Esta app reutiliza servicios de Application/Infrastructure para:
 
 ### Configuración previa
 1. Instalar .NET SDK 8 en macOS.
-2. Configurar cadena de conexión en `src/Barraca.RRHH.App.Mac/appsettings.json` (SQL Server accesible desde Mac).
+2. Por defecto la app mac usa SQLite local en `~/Library/Application Support/BarracaRRHH/barraca_rrhh.db`.
+3. Si quieres usar SQL Server, cambia en `src/Barraca.RRHH.App.Mac/appsettings.json`:
+	- `Database:Provider` a `SqlServer`
+	- `ConnectionStrings:DefaultConnection` a tu cadena TCP válida.
 
 ### Ejecutar en desarrollo
 1. `dotnet restore Barraca.RRHH.sln`
