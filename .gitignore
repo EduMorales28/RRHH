@@ -4,6 +4,9 @@
 # VS Code
 .vscode/*.log
 
+# Visual Studio
+.vs/
+
 # .NET build outputs
 **/bin/
 **/obj/

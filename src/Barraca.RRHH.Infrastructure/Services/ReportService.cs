@@ -150,6 +150,11 @@ public class ReportService : IReportService
                     var sectionIndex = 1;
                     foreach (var grp in grouped)
                     {
+                        var subtotalAdel = grp.Sum(y => y.Adelanto);
+                        var subtotalLiquido = grp.Sum(y => y.Liquido);
+                        var subtotalRet = grp.Sum(y => y.Retencion);
+                        var subtotalTipo = grp.Sum(y => y.TotalGenerado);
+
                         var tipoColor = PdfReportStyle.TipoObraColor(TipoObraParser.Parse(grp.Key));
                         col.Item().PaddingTop(10).Element(c =>
                             c.Border(1).BorderColor(tipoColor).Padding(8).Column(section =>
@@ -286,7 +291,10 @@ public class ReportService : IReportService
                                     });
                                 });
 
-                                section.Item().PaddingTop(6).Element(x => PdfReportStyle.HighlightedTotalRow(x, "TOTAL TIPO:", grp.Sum(y => y.TotalGenerado).ToString("N2")));
+                                section.Item().PaddingTop(6).Element(x => PdfReportStyle.HighlightedTotalRow(x, "Subtotal adelantos (tipo):", subtotalAdel.ToString("N2")));
+                                section.Item().Element(x => PdfReportStyle.HighlightedTotalRow(x, "Subtotal líquidos (tipo):", subtotalLiquido.ToString("N2")));
+                                section.Item().Element(x => PdfReportStyle.HighlightedTotalRow(x, "Subtotal retenciones (tipo):", subtotalRet.ToString("N2")));
+                                section.Item().Element(x => PdfReportStyle.HighlightedTotalRow(x, "TOTAL TIPO:", subtotalTipo.ToString("N2")));
                             }));
 
             sectionIndex++;
