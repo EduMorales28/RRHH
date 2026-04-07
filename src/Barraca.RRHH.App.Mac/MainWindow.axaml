@@ -20,10 +20,13 @@
           </StackPanel>
         </StackPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
-          <TextBlock Text="Período:" Foreground="{DynamicResource BrandTextOnDarkBrush}" VerticalAlignment="Center" />
-          <TextBox Width="120" Text="{Binding Periodo}" Watermark="yyyy-MM" IsReadOnly="True" />
+          <StackPanel Orientation="Vertical" Spacing="2" Margin="0,0,4,0">
+            <TextBlock Text="Período activo" Foreground="#D1FAE5" FontSize="12" FontWeight="SemiBold" />
+            <Border Background="#0D9488" BorderBrush="#99F6E4" BorderThickness="1" CornerRadius="10" Padding="12,6">
+              <TextBlock Text="{Binding PeriodoBonito}" Foreground="White" FontSize="20" FontWeight="Bold"/>
+            </Border>
+          </StackPanel>
           <Button Content="Seleccionar período" Click="SeleccionarPeriodo_Click" />
-          <Button Content="Cambiar período" Command="{Binding CambiarPeriodoCommand}" />
           <Button Content="Refrescar" Command="{Binding RefrescarCommand}" />
           <Button Content="Calcular distribucion" Click="CalcularDistribucionConValidacion_Click" />
           <Button Content="Generar reportes" Click="GenerarReportesConValidacion_Click" />
@@ -36,7 +39,7 @@
         <ScrollViewer>
           <StackPanel Margin="8" Spacing="12">
             <Grid ColumnDefinitions="*,*,*,*">
-              <Border Grid.Column="0" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Período" Foreground="#6B7280"/><TextBlock Text="{Binding Periodo}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+              <Border Grid.Column="0" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Período" Foreground="#6B7280"/><TextBlock Text="{Binding PeriodoBonito}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
               <Border Grid.Column="1" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Total generado" Foreground="#6B7280"/><TextBlock Text="{Binding TotalGenerado}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
               <Border Grid.Column="2" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Adelantos" Foreground="#6B7280"/><TextBlock Text="{Binding Adelantos}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
               <Border Grid.Column="3" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Líquidos" Foreground="#6B7280"/><TextBlock Text="{Binding Liquidos}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
@@ -99,7 +102,7 @@
             <StackPanel Spacing="6">
               <TextBlock Text="Resumen operativo" FontSize="18" FontWeight="SemiBold"/>
               <TextBlock Text="Período" Foreground="#6B7280"/>
-              <TextBlock Text="{Binding Periodo}" FontWeight="Bold"/>
+              <TextBlock Text="{Binding PeriodoBonito}" FontWeight="Bold"/>
               <TextBlock Text="Estado" Foreground="#6B7280" Margin="0,12,0,0"/>
               <TextBlock Text="{Binding Status}" TextWrapping="Wrap"/>
             </StackPanel>

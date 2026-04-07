@@ -132,10 +132,10 @@ public partial class InconsistenciasWindow : Window
 
     private void BodyScroll_ScrollChanged(object? sender, ScrollChangedEventArgs e)
     {
-        if (HeaderScroll is null)
+        if (HeaderScroll is null || sender is not ScrollViewer bodyScroll)
             return;
 
-        HeaderScroll.Offset = new Vector(e.Offset.X, 0);
+        HeaderScroll.Offset = new Vector(bodyScroll.Offset.X, 0);
     }
 }
 

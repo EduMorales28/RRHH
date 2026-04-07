@@ -82,8 +82,18 @@ public class MainWindowViewModel : INotifyPropertyChanged
     public string Periodo
     {
         get => _periodo;
-        set => SetField(ref _periodo, value);
+        set
+        {
+            if (Equals(_periodo, value))
+                return;
+
+            _periodo = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Periodo)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(PeriodoBonito)));
+        }
     }
+
+    public string PeriodoBonito => FormatearPeriodoBonito(Periodo);
 
     public string Status
     {
@@ -413,6 +423,19 @@ public class MainWindowViewModel : INotifyPropertyChanged
             throw new InvalidOperationException("El mes del período debe estar entre 01 y 12.");
 
         return value;
+    }
+
+    private static string FormatearPeriodoBonito(string periodo)
+    {
+        if (!Regex.IsMatch(periodo ?? string.Empty, "^\\d{4}-\\d{2}$"))
+            return periodo;
+
+        var anio = int.Parse(periodo.Substring(0, 4), CultureInfo.InvariantCulture);
+        var mes = int.Parse(periodo.Substring(5, 2), CultureInfo.InvariantCulture);
+        var fecha = new DateTime(anio, mes, 1);
+        var texto = fecha.ToString("MMMM yyyy", new CultureInfo("es-ES"));
+
+        return char.ToUpperInvariant(texto[0]) + texto.Substring(1);
     }
 
     private void CargarPreferenciasUi()

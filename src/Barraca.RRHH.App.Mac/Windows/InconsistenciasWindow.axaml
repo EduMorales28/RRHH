@@ -52,7 +52,7 @@
 
         <ScrollViewer x:Name="HeaderScroll" Grid.Row="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,10">
           <Border BorderBrush="#D1E3F8" BorderThickness="1" Background="#EFF6FF" CornerRadius="8" Padding="10">
-            <Grid ColumnDefinitions="200,80,220,90,80,80,260,190,130,240,150,100" ColumnSpacing="8">
+            <Grid ColumnDefinitions="200,80,220,90,80,80,260,190,130,240,150,100">
               <TextBlock Grid.Column="0" Text="Inconsistencia" FontWeight="SemiBold" Margin="0,0,8,0"/>
               <TextBlock Grid.Column="1" Text="Nro" FontWeight="SemiBold" Margin="0,0,8,0"/>
               <TextBlock Grid.Column="2" Text="Funcionario" FontWeight="SemiBold" Margin="0,0,8,0"/>
@@ -74,7 +74,7 @@
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <Border BorderBrush="#D9E2EC" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,10" Background="{Binding RowBackground}">
-                  <Grid ColumnDefinitions="200,80,220,90,80,80,260,190,130,240,150,100" ColumnSpacing="8">
+                  <Grid ColumnDefinitions="200,80,220,90,80,80,260,190,130,240,150,100">
                     <Border Grid.Column="0" Background="#FFEDD5" BorderBrush="#FDBA74" BorderThickness="1" CornerRadius="999" Padding="8,4" HorizontalAlignment="Left" VerticalAlignment="Center" MaxWidth="190">
                       <TextBlock Text="{Binding TipoError}" FontWeight="SemiBold" Foreground="#9A3412" TextTrimming="CharacterEllipsis"/>
                     </Border>
