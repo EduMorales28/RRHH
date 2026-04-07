@@ -1,18 +1,22 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Barraca.RRHH.App.Mac.MainWindow"
-        Width="980"
-        Height="640"
-        MinWidth="840"
-        MinHeight="560"
-        Title="Barraca RRHH macOS">
-  <Grid RowDefinitions="Auto,*,Auto" Margin="16">
-    <Border Grid.Row="0" Background="#17324C" CornerRadius="10" Padding="14">
+        Width="1320"
+        Height="820"
+        MinWidth="980"
+        MinHeight="680"
+        Title="Barraca RRHH v3 - macOS">
+  <Grid RowDefinitions="Auto,*,Auto" Background="#F3F4F6">
+    <Border Grid.Row="0" Background="#16324F" Padding="16">
       <DockPanel LastChildFill="False">
-        <TextBlock DockPanel.Dock="Left" Text="Barraca RRHH" Foreground="White" FontSize="22" FontWeight="Bold" VerticalAlignment="Center" />
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+          <TextBlock Text="Barraca RRHH v3" Foreground="White" FontSize="26" FontWeight="Bold" VerticalAlignment="Center" />
+          <TextBlock Text="  |  RRHH + Obras + Costos + Reportes PDF" Foreground="#D9E5F3" Margin="12,4,0,0" />
+        </StackPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
-          <TextBlock Text="Periodo" Foreground="White" VerticalAlignment="Center" />
+          <TextBlock Text="Período:" Foreground="White" VerticalAlignment="Center" />
           <TextBox Width="120" Text="{Binding Periodo}" Watermark="yyyy-MM" />
+          <Button Content="Cambiar período" Command="{Binding CambiarPeriodoCommand}" />
           <Button Content="Refrescar" Command="{Binding RefrescarCommand}" />
           <Button Content="Calcular distribucion" Command="{Binding CalcularDistribucionCommand}" />
           <Button Content="Generar reportes" Command="{Binding GenerarReportesCommand}" />
@@ -20,43 +24,81 @@
       </DockPanel>
     </Border>
 
-    <Grid Grid.Row="1" Margin="0,14,0,14" ColumnDefinitions="3*,2*">
-      <Border Grid.Column="0" Margin="0,0,7,0" Background="#F8FAFC" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="10" Padding="12">
-        <StackPanel Spacing="10">
-          <TextBlock Text="Dashboard" FontSize="20" FontWeight="SemiBold" />
-          <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto">
-            <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,0,8" Text="Total generado" />
-            <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Text="{Binding TotalGenerado}" HorizontalAlignment="Right" FontWeight="Bold" />
-            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,0,8" Text="Adelantos" />
-            <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Adelantos}" HorizontalAlignment="Right" FontWeight="Bold" />
-            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,0,8" Text="Liquidos" />
-            <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" Text="{Binding Liquidos}" HorizontalAlignment="Right" FontWeight="Bold" />
-            <TextBlock Grid.Row="3" Grid.Column="0" Text="Retenciones" />
-            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Retenciones}" HorizontalAlignment="Right" FontWeight="Bold" />
-          </Grid>
+    <TabControl Grid.Row="1" Margin="16">
+      <TabItem Header="Dashboard">
+        <ScrollViewer>
+          <StackPanel Margin="8" Spacing="12">
+            <Grid ColumnDefinitions="*,*,*,*">
+              <Border Grid.Column="0" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Período" Foreground="#6B7280"/><TextBlock Text="{Binding Periodo}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+              <Border Grid.Column="1" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Total generado" Foreground="#6B7280"/><TextBlock Text="{Binding TotalGenerado}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+              <Border Grid.Column="2" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Adelantos" Foreground="#6B7280"/><TextBlock Text="{Binding Adelantos}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+              <Border Grid.Column="3" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Líquidos" Foreground="#6B7280"/><TextBlock Text="{Binding Liquidos}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+            </Grid>
 
-          <Separator />
+            <Grid ColumnDefinitions="*,*,*,*">
+              <Border Grid.Column="0" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Retenciones" Foreground="#6B7280"/><TextBlock Text="{Binding Retenciones}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+              <Border Grid.Column="1" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Funcionarios activos" Foreground="#6B7280"/><TextBlock Text="{Binding FuncionariosActivos}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+              <Border Grid.Column="2" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Obras activas" Foreground="#6B7280"/><TextBlock Text="{Binding ObrasActivas}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+              <Border Grid.Column="3" Margin="6" Background="White" CornerRadius="10" Padding="16"><StackPanel><TextBlock Text="Líneas distribuidas" Foreground="#6B7280"/><TextBlock Text="{Binding LineasDistribuidas}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+            </Grid>
 
-          <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Funcionarios activos" />
-            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding FuncionariosActivos}" HorizontalAlignment="Right" FontWeight="SemiBold" />
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="Obras activas" />
-            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ObrasActivas}" HorizontalAlignment="Right" FontWeight="SemiBold" />
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="Lineas distribuidas" />
-            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding LineasDistribuidas}" HorizontalAlignment="Right" FontWeight="SemiBold" />
-          </Grid>
-        </StackPanel>
-      </Border>
+            <Border Background="White" CornerRadius="10" Margin="6" Padding="16">
+              <StackPanel Spacing="6">
+                <TextBlock Text="Estado v3" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <TextBlock Text="• Gestión de período activo"/>
+                <TextBlock Text="• Distribución de costos por período"/>
+                <TextBlock Text="• Reportes PDF automáticos"/>
+                <TextBlock Text="• Motor de datos local SQLite en macOS"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
 
-      <Border Grid.Column="1" Margin="7,0,0,0" Background="#F8FAFC" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="10" Padding="12">
-        <StackPanel Spacing="8">
-          <TextBlock Text="Reportes generados" FontSize="20" FontWeight="SemiBold" />
-          <TextBlock Text="Destino" FontSize="12" Opacity="0.8" />
-          <TextBox Text="{Binding CarpetaReportes}" IsReadOnly="True" />
-          <ListBox ItemsSource="{Binding ReportesRecientes}" Height="420" />
-        </StackPanel>
-      </Border>
-    </Grid>
+      <TabItem Header="Operaciones">
+        <Grid Margin="16" RowDefinitions="Auto,*" ColumnDefinitions="2*,*">
+          <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="10" Margin="0,0,0,14">
+            <Button Content="Refrescar dashboard" Command="{Binding RefrescarCommand}" Padding="14,8"/>
+            <Button Content="Calcular distribución" Command="{Binding CalcularDistribucionCommand}" Padding="14,8"/>
+            <Button Content="Generar reportes del período" Command="{Binding GenerarReportesCommand}" Padding="14,8"/>
+          </StackPanel>
+
+          <Border Grid.Row="1" Grid.Column="0" Margin="0,0,8,0" Background="White" CornerRadius="10" Padding="14">
+            <StackPanel Spacing="6">
+              <TextBlock Text="Resumen operativo" FontSize="18" FontWeight="SemiBold"/>
+              <TextBlock Text="Período" Foreground="#6B7280"/>
+              <TextBlock Text="{Binding Periodo}" FontWeight="Bold"/>
+              <TextBlock Text="Estado" Foreground="#6B7280" Margin="0,12,0,0"/>
+              <TextBlock Text="{Binding Status}" TextWrapping="Wrap"/>
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Row="1" Grid.Column="1" Margin="8,0,0,0" Background="White" CornerRadius="10" Padding="14">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Destino de reportes" FontSize="18" FontWeight="SemiBold"/>
+              <TextBox Text="{Binding CarpetaReportes}" IsReadOnly="True"/>
+              <TextBlock Text="Reportes generados" Margin="0,8,0,0" FontWeight="SemiBold"/>
+              <ListBox ItemsSource="{Binding ReportesRecientes}" Height="280"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <TabItem Header="Reportes">
+        <Grid Margin="16" RowDefinitions="Auto,*">
+          <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,12">
+            <Button Content="Generar todos los PDFs" Command="{Binding GenerarReportesCommand}" Padding="16,8"/>
+            <Button Content="Refrescar" Command="{Binding RefrescarCommand}" Padding="16,8"/>
+          </StackPanel>
+          <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="14">
+            <StackPanel>
+              <TextBlock Text="Archivos generados" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
+              <ListBox ItemsSource="{Binding ReportesRecientes}" Height="460"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+    </TabControl>
 
     <Border Grid.Row="2" Background="#FFFFFF" BorderBrush="#D0D7DE" BorderThickness="1" CornerRadius="8" Padding="10">
       <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />

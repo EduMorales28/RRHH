@@ -43,6 +43,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
             "Reportes");
 
         RefrescarCommand = new AsyncCommand(RefrescarAsync);
+    CambiarPeriodoCommand = new AsyncCommand(RefrescarAsync);
         CalcularDistribucionCommand = new AsyncCommand(CalcularDistribucionAsync);
         GenerarReportesCommand = new AsyncCommand(GenerarReportesAsync);
 
@@ -108,8 +109,10 @@ public class MainWindowViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<string> ReportesRecientes { get; } = new();
+    public ObservableCollection<string> PeriodosDisponibles { get; } = new();
 
     public ICommand RefrescarCommand { get; }
+    public ICommand CambiarPeriodoCommand { get; }
     public ICommand CalcularDistribucionCommand { get; }
     public ICommand GenerarReportesCommand { get; }
 
@@ -119,6 +122,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
         {
             var periodoNormalizado = NormalizarPeriodo(Periodo);
             await _periodoService.AbrirPeriodoAsync(periodoNormalizado, "admin");
+            await CargarPeriodosAsync();
             var dashboard = await _dashboardService.ObtenerResumenAsync(periodoNormalizado);
 
             Periodo = periodoNormalizado;
@@ -135,6 +139,14 @@ public class MainWindowViewModel : INotifyPropertyChanged
         {
             Status = $"Error refrescando datos: {ex.Message}";
         }
+    }
+
+    private async Task CargarPeriodosAsync()
+    {
+        var periodos = await _periodoService.ObtenerPeriodosAsync();
+        PeriodosDisponibles.Clear();
+        foreach (var p in periodos.OrderByDescending(x => x.Codigo))
+            PeriodosDisponibles.Add(p.Codigo);
     }
 
     private async Task CalcularDistribucionAsync()
