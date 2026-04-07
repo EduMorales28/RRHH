@@ -471,6 +471,44 @@ public class ReportService : IReportService
                         tipoIndex++;
                     }
 
+                    var totalHorasGeneral = distribuciones.Sum(x => x.HorasLinea);
+                    var totalJornalesGeneral = distribuciones.Sum(x => x.Jornales);
+                    var valorHoraGeneral = totalHorasGeneral <= 0m
+                        ? 0m
+                        : Math.Round(totalGeneral / totalHorasGeneral, 2, MidpointRounding.AwayFromZero);
+
+                    col.Item().PaddingTop(10).Element(c =>
+                        c.Border(1).BorderColor(PdfReportStyle.BorderGreen).Padding(8).Column(summary =>
+                        {
+                            summary.Item().Element(x => PdfReportStyle.SectionTitle(x, "RESUMEN GENERAL DE DISTRIBUCION"));
+                            summary.Item().Element(x =>
+                            {
+                                x.Table(t =>
+                                {
+                                    t.ColumnsDefinition(cd =>
+                                    {
+                                        cd.RelativeColumn(1.5f);
+                                        cd.RelativeColumn(1f);
+                                        cd.RelativeColumn(1f);
+                                        cd.RelativeColumn(1f);
+                                    });
+
+                                    t.Header(h =>
+                                    {
+                                        h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Concepto"));
+                                        h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Horas eq").AlignRight());
+                                        h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Jornales").AlignRight());
+                                        h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("$/hora").AlignRight());
+                                    });
+
+                                    t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text("Totales generales"));
+                                    t.Cell().Element(cell => PdfReportStyle.TableCell(cell).AlignRight().Text(totalHorasGeneral.ToString("N2")));
+                                    t.Cell().Element(cell => PdfReportStyle.TableCell(cell).AlignRight().Text(totalJornalesGeneral.ToString("N2")));
+                                    t.Cell().Element(cell => PdfReportStyle.TableCell(cell).AlignRight().Text(valorHoraGeneral.ToString("N2")));
+                                });
+                            });
+                        }));
+
                     // TOTAL GENERAL final box / CIERRE DEL REPORTE
                     col.Item().PaddingTop(14).Element(x => PdfReportStyle.GreenTotalBox(x, "CIERRE DEL REPORTE - TOTAL GENERAL:", totalGeneral.ToString("N2")));
                 });
