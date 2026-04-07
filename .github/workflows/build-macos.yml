@@ -1,0 +1,37 @@
+name: build-macos-app
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "src/Barraca.RRHH.App.Mac/**"
+      - "src/Barraca.RRHH.Application/**"
+      - "src/Barraca.RRHH.Infrastructure/**"
+      - "src/Barraca.RRHH.Domain/**"
+      - "Barraca.RRHH.sln"
+
+jobs:
+  publish-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore Barraca.RRHH.sln
+
+      - name: Package app and dmg (osx-arm64)
+        run: |
+          chmod +x scripts/package-macos.sh
+          bash scripts/package-macos.sh osx-arm64 Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: barraca-rrhh-macos-arm64
+          path: dist/macos-osx-arm64

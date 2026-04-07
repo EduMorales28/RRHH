@@ -1,0 +1,198 @@
+<Window x:Class="Barraca.RRHH.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Barraca RRHH v3" Height="860" Width="1460" WindowStartupLocation="CenterScreen">
+    <Grid Background="#F3F4F6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Background="#16324F" Padding="16">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <TextBlock Text="Barraca RRHH v3" FontSize="26" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                    <TextBlock Text="  |  RRHH + Obras + Costos + Reportes PDF" Foreground="#D9E5F3" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                    <TextBlock Text="Período:" Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                    <ComboBox Width="140" ItemsSource="{Binding PeriodosDisponibles}"
+                              Text="{Binding Periodo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                              IsEditable="True" Margin="0,0,8,0" VerticalContentAlignment="Center" FontSize="14"/>
+                    <Button Content="Cambiar período" Command="{Binding CambiarPeriodoCommand}" Height="32" Padding="14,4" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                    <Button Content="Nuevo período" Command="{Binding CambiarPeriodoCommand}" Height="32" Padding="14,4" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                    <Button Content="&#x21BB; Refrescar" Command="{Binding RefrescarDashboardCommand}" Height="32" Padding="12,4"/>
+                    <Button Content="&#x1F5D1; Borrar TODOS los datos" Height="32" Padding="12,4" Margin="12,0,0,0"
+                            Click="ResetearTodosDatos_Click" Foreground="White" Background="#DC2626" FontWeight="SemiBold"/>
+                    <Button Content="✕ Cerrar" Height="32" Padding="12,4" Margin="12,0,0,0"
+                            Click="CerrarApp_Click" Foreground="White" Background="#6B7280" FontWeight="SemiBold"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <TabControl Grid.Row="1" Margin="16">
+            <TabItem Header="Dashboard">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="16">
+                        <UniformGrid Columns="4">
+                            <Border Background="White" CornerRadius="10" Margin="8" Padding="16"><StackPanel><TextBlock Text="Período" Foreground="#6B7280"/><TextBlock Text="{Binding Dashboard.Periodo}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+                            <Border Background="White" CornerRadius="10" Margin="8" Padding="16"><StackPanel><TextBlock Text="Total generado" Foreground="#6B7280"/><TextBlock Text="{Binding Dashboard.TotalGenerado, StringFormat={}{0:N2}}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+                            <Border Background="White" CornerRadius="10" Margin="8" Padding="16"><StackPanel><TextBlock Text="Adelantos" Foreground="#6B7280"/><TextBlock Text="{Binding Dashboard.Adelantos, StringFormat={}{0:N2}}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+                            <Border Background="White" CornerRadius="10" Margin="8" Padding="16"><StackPanel><TextBlock Text="Líquidos" Foreground="#6B7280"/><TextBlock Text="{Binding Dashboard.Liquidos, StringFormat={}{0:N2}}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+                        </UniformGrid>
+
+                        <UniformGrid Columns="4">
+                            <Border Background="White" CornerRadius="10" Margin="8" Padding="16"><StackPanel><TextBlock Text="Retenciones" Foreground="#6B7280"/><TextBlock Text="{Binding Dashboard.Retenciones, StringFormat={}{0:N2}}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+                            <Border Background="White" CornerRadius="10" Margin="8" Padding="16"><StackPanel><TextBlock Text="Funcionarios activos" Foreground="#6B7280"/><TextBlock Text="{Binding Dashboard.FuncionariosActivos}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+                            <Border Background="White" CornerRadius="10" Margin="8" Padding="16"><StackPanel><TextBlock Text="Obras activas" Foreground="#6B7280"/><TextBlock Text="{Binding Dashboard.ObrasActivas}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+                            <Border Background="White" CornerRadius="10" Margin="8" Padding="16"><StackPanel><TextBlock Text="Líneas distribuidas" Foreground="#6B7280"/><TextBlock Text="{Binding Dashboard.LineasDistribuidas}" FontSize="24" FontWeight="Bold"/></StackPanel></Border>
+                        </UniformGrid>
+
+                        <Border Background="White" CornerRadius="10" Margin="8" Padding="16">
+                            <StackPanel>
+                                <TextBlock Text="Estado v3" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                <TextBlock Text="• Importación real de las 4 plantillas" Margin="0,0,0,6"/>
+                                <TextBlock Text="• Cálculo de distribución según costo total por tipo de obra y regla de 3" Margin="0,0,0,6"/>
+                                <TextBlock Text="• Gestión automática de períodos (el período activo se abre y los anteriores se cierran)" Margin="0,0,0,6"/>
+                                <TextBlock Text="• Reportes PDF con QuestPDF" Margin="0,0,0,6"/>
+                                <TextBlock Text="• Registro de incidencias de importación" Margin="0,0,0,6"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Importaciones">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <WrapPanel Margin="0,0,0,16">
+                        <Button Content="Importar Funcionarios" Command="{Binding ImportarFuncionariosCommand}" Margin="0,0,12,12" Padding="16,10"/>
+                        <Button Content="Importar Obras" Command="{Binding ImportarObrasCommand}" Margin="0,0,12,12" Padding="16,10"/>
+                        <Button Content="Importar Horas" Command="{Binding ImportarHorasCommand}" Margin="0,0,12,12" Padding="16,10"/>
+                        <Button Content="Importar Pagos" Command="{Binding ImportarPagosCommand}" Margin="0,0,12,12" Padding="16,10"/>
+                        <Button Content="Vaciar Auditoría e Incidencias" Padding="16,10" Click="ClearAuditIncidents_Click" Margin="12,0,0,0"/>
+                    </WrapPanel>
+                    <GroupBox Header="Auditoría reciente" Grid.Row="1" Margin="0,0,0,8">
+                        <DockPanel>
+                            <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding Auditoria}" AutoGenerateColumns="False" IsReadOnly="True" x:Name="dgAuditoria" SelectionMode="Extended" SelectionUnit="FullRow">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Fecha" Binding="{Binding Codigo}" Width="140"/>
+                                    <DataGridTextColumn Header="Acción" Binding="{Binding Descripcion}" Width="220"/>
+                                    <DataGridTextColumn Header="Detalle" Binding="{Binding Extra}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left">
+                                <Button Content="Eliminar seleccionados (Auditoría)" Padding="12,6" Click="EliminarAuditoria_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </GroupBox>
+                    <GroupBox Header="Incidencias de importación" Grid.Row="2">
+                        <DockPanel>
+                            <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding Incidencias}" AutoGenerateColumns="False" IsReadOnly="True" x:Name="dgIncidencias" SelectionMode="Extended" SelectionUnit="FullRow">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Tipo" Binding="{Binding Codigo}" Width="120"/>
+                                    <DataGridTextColumn Header="Referencia" Binding="{Binding Descripcion}" Width="180"/>
+                                    <DataGridTextColumn Header="Descripción" Binding="{Binding Extra}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left">
+                                <Button Content="Eliminar seleccionados (Incidencias)" Padding="12,6" Click="EliminarIncidencias_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Funcionarios">
+                <Grid Margin="16">
+                    <DataGrid ItemsSource="{Binding Funcionarios}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Número" Binding="{Binding Codigo}" Width="120"/>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Descripcion}" Width="*"/>
+                            <DataGridTextColumn Header="Categoría / Estado" Binding="{Binding Extra}" Width="240"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Obras">
+                <Grid Margin="16">
+                    <DataGrid ItemsSource="{Binding Obras}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Número" Binding="{Binding Codigo}" Width="120"/>
+                            <DataGridTextColumn Header="Obra" Binding="{Binding Descripcion}" Width="*"/>
+                            <DataGridTextColumn Header="Tipo / Estado" Binding="{Binding Extra}" Width="260"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Períodos">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Border Grid.Row="0" Background="White" BorderBrush="#D1D5DB" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,12">
+                        <TextBlock Text="Los períodos se gestionan automáticamente: al cambiar/usar un período, ese queda activo y los anteriores abiertos se cierran." TextWrapping="Wrap" Foreground="#374151"/>
+                    </Border>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Periodos}" AutoGenerateColumns="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Periodo" Binding="{Binding Codigo}" Width="120"/>
+                            <DataGridTextColumn Header="Estado" Binding="{Binding Descripcion}" Width="140"/>
+                            <DataGridTextColumn Header="Fecha cierre / estado" Binding="{Binding Extra}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Distribución">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <WrapPanel Margin="0,0,0,16">
+                        <Button Content="Calcular distribución" Command="{Binding CalcularDistribucionCommand}" Padding="16,10"/>
+                        <Button Content="Eliminar seleccionados (DB)" Padding="16,10" Click="EliminarDistribucion_Click" Margin="8,0,0,0"/>
+                    </WrapPanel>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding DistribucionLineas}" AutoGenerateColumns="False" IsReadOnly="True" x:Name="dgDistribucion" SelectionMode="Extended" SelectionUnit="FullRow">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Tipo" Binding="{Binding TipoObra}" Width="120"/>
+                            <DataGridTextColumn Header="N° Obra" Binding="{Binding NumeroObra}" Width="100"/>
+                            <DataGridTextColumn Header="Obra" Binding="{Binding NombreObra}" Width="220"/>
+                            <DataGridTextColumn Header="Categoría" Binding="{Binding Categoria}" Width="180"/>
+                            <DataGridTextColumn Header="Horas" Binding="{Binding HorasLinea, StringFormat={}{0:N2}}" Width="90"/>
+                            <DataGridTextColumn Header="Jornales" Binding="{Binding Jornales, StringFormat={}{0:N2}}" Width="90"/>
+                            <DataGridTextColumn Header="% Part." Binding="{Binding PorcentajeParticipacion, StringFormat={}{0:P2}}" Width="100"/>
+                            <DataGridTextColumn Header="$ / Hora" Binding="{Binding ValorHora, StringFormat={}{0:N2}}" Width="100"/>
+                            <DataGridTextColumn Header="Monto" Binding="{Binding MontoLinea, StringFormat={}{0:N2}}" Width="120"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Reportes">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <StackPanel Orientation="Vertical" Margin="0,0,0,12">
+                        <TextBlock Text="Carpeta destino" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBox Text="{Binding CarpetaReportes, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
+                        <Button Content="Generar todos los PDFs del período" Command="{Binding GenerarTodosLosReportesCommand}" Padding="16,10" Width="260"/>
+                    </StackPanel>
+                    <DockPanel Grid.Row="1">
+                        <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding ReportesGenerados}" AutoGenerateColumns="False" IsReadOnly="True" x:Name="dgReportes" SelectionMode="Extended" SelectionUnit="FullRow">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Archivo" Binding="{Binding Codigo}" Width="240"/>
+                                <DataGridTextColumn Header="Ruta" Binding="{Binding Descripcion}" Width="*"/>
+                                <DataGridTextColumn Header="Tipo" Binding="{Binding Extra}" Width="140"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left">
+                            <Button Content="Eliminar seleccionados (PDF)" Padding="12,6" Click="EliminarReportes_Click"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <Border Grid.Row="2" Background="White" BorderBrush="#D1D5DB" BorderThickness="1,1,0,0" Padding="12">
+            <TextBlock Text="{Binding Status}" Foreground="#374151"/>
+        </Border>
+    </Grid>
+</Window>

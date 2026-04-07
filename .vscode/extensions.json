@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.vscode-dotnet-runtime",
+    "AvaloniaTeam.vscode-avalonia",
+    "ms-mssql.mssql",
+    "eamodio.gitlens"
+  ]
+}

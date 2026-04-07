@@ -1,0 +1,42 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Barraca.RRHH.App", "src\Barraca.RRHH.App\Barraca.RRHH.App.csproj", "{B7E43730-C6C9-4A98-B828-3F0787450B59}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Barraca.RRHH.Application", "src\Barraca.RRHH.Application\Barraca.RRHH.Application.csproj", "{7DF9B8A1-B16A-43E4-8AA2-7892F1C7E9D8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Barraca.RRHH.Domain", "src\Barraca.RRHH.Domain\Barraca.RRHH.Domain.csproj", "{40F76AB2-7E2D-42F6-B59D-720B98627A18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Barraca.RRHH.Infrastructure", "src\Barraca.RRHH.Infrastructure\Barraca.RRHH.Infrastructure.csproj", "{EE826531-D741-4A77-96D5-D2C8C387C65C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Barraca.RRHH.App.Mac", "src\Barraca.RRHH.App.Mac\Barraca.RRHH.App.Mac.csproj", "{D6034A4A-BD79-4B58-90A6-00D4F918A53A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B7E43730-C6C9-4A98-B828-3F0787450B59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7E43730-C6C9-4A98-B828-3F0787450B59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7E43730-C6C9-4A98-B828-3F0787450B59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7E43730-C6C9-4A98-B828-3F0787450B59}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7DF9B8A1-B16A-43E4-8AA2-7892F1C7E9D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7DF9B8A1-B16A-43E4-8AA2-7892F1C7E9D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7DF9B8A1-B16A-43E4-8AA2-7892F1C7E9D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7DF9B8A1-B16A-43E4-8AA2-7892F1C7E9D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40F76AB2-7E2D-42F6-B59D-720B98627A18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40F76AB2-7E2D-42F6-B59D-720B98627A18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40F76AB2-7E2D-42F6-B59D-720B98627A18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40F76AB2-7E2D-42F6-B59D-720B98627A18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE826531-D741-4A77-96D5-D2C8C387C65C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE826531-D741-4A77-96D5-D2C8C387C65C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE826531-D741-4A77-96D5-D2C8C387C65C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE826531-D741-4A77-96D5-D2C8C387C65C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6034A4A-BD79-4B58-90A6-00D4F918A53A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6034A4A-BD79-4B58-90A6-00D4F918A53A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6034A4A-BD79-4B58-90A6-00D4F918A53A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6034A4A-BD79-4B58-90A6-00D4F918A53A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

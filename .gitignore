@@ -1,0 +1,35 @@
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/*.log
+
+# .NET build outputs
+**/bin/
+**/obj/
+
+# Test results
+TestResults/
+*.trx
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Local secrets/config overrides
+appsettings.Development.json
+
+# Local publish outputs
+dist/macos-*/
+dist/
+
+# Prebuilt Windows releases
+Barraca.RRHH.v3-win-x64-20260407-hotfix2/
+Barraca.RRHH.v3-win-x64-20260407-hotfix3/

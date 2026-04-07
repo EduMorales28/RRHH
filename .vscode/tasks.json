@@ -1,0 +1,79 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "restore-solution",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "restore",
+        "Barraca.RRHH.sln"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "publish-macos-arm64",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/package-macos.sh",
+        "osx-arm64",
+        "Release"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/bash"
+        }
+      },
+      "group": "build",
+      "dependsOn": [
+        "restore-solution"
+      ],
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "package-macos-arm64",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/package-macos.sh",
+        "osx-arm64",
+        "Release"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/bash"
+        }
+      },
+      "group": "build",
+      "dependsOn": [
+        "restore-solution"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "package-macos-x64",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "scripts/package-macos.sh",
+        "osx-x64",
+        "Release"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "/bin/bash"
+        }
+      },
+      "group": "build",
+      "dependsOn": [
+        "restore-solution"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
