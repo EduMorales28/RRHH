@@ -89,6 +89,14 @@ Opcional: pasar período como argumento:
 - Ejecuta `workflow_dispatch` desde GitHub y descarga el artefacto `barraca-rrhh-macos-arm64`.
 - Ese artefacto incluye `.app` y `.dmg`.
 
+### Si macOS dice "archivo dañado"
+Cuando el archivo se descarga desde Internet, macOS puede bloquearlo por cuarentena.
+
+1. Descomprimir el artefacto.
+2. Ejecutar en Terminal:
+	- `xattr -dr com.apple.quarantine "ruta/Barraca RRHH.app"`
+3. Abrir con clic derecho > Open la primera vez.
+
 ## Nota de red detectada en este equipo
 En este Mac hubo errores SSL al descargar el SDK desde `builds.dotnet.microsoft.com`, por eso no fue posible compilar localmente durante esta sesión. La alternativa inmediata es usar el workflow de GitHub Actions que ya quedó agregado.
 

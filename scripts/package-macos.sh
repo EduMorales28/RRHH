@@ -51,10 +51,13 @@ PLIST
 
 chmod +x "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}" || true
 
-echo "[4/5] Creando DMG"
+echo "[4/6] Firmando app (ad-hoc)"
+codesign --force --deep --sign - "${APP_DIR}"
+
+echo "[5/6] Creando DMG"
 rm -f "${DMG_PATH}"
 hdiutil create -volname "${APP_NAME}" -srcfolder "${APP_DIR}" -ov -format UDZO "${DMG_PATH}"
 
-echo "[5/5] Resultado"
+echo "[6/6] Resultado"
 echo "APP: ${APP_DIR}"
 echo "DMG: ${DMG_PATH}"
