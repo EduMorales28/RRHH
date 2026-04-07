@@ -110,6 +110,18 @@ public partial class MainWindow : Window
         if (errores.Count == 0)
             return false;
 
+        var erroresBloqueantes = errores
+            .Where(x => !string.Equals(x.Tipo, "HORAS_SIN_PAGOS", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (erroresBloqueantes.Count == 0)
+        {
+            vm.Status =
+                $"Advertencia: se detectaron {errores.Count} caso(s) de HORAS_SIN_PAGOS. " +
+                $"Se continúa con {operacion} porque no afecta el cierre contable de distribución.";
+            return false;
+        }
+
         vm.Status = $"No se puede {operacion}: hay inconsistencias. Revísalas y corrige antes de continuar.";
 
         var ventana = new InconsistenciasWindow(vm.Periodo, vm.ValidarConsistenciaAsync, vm.ObtenerDetalleConsistenciaAsync, vm.GuardarDetalleConsistenciaAsync);
