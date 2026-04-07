@@ -77,6 +77,8 @@ Esta app reutiliza servicios de Application/Infrastructure para:
 ### Publicar con VS Code Task
 - Tasks disponibles en `.vscode/tasks.json`:
 	- `restore-macos-project`
+	- `run-macos-dev`
+	- `watch-macos-live-preview`
 	- `publish-macos-arm64`
 	- `package-macos-arm64`
 	- `package-macos-x64`
@@ -84,6 +86,15 @@ Esta app reutiliza servicios de Application/Infrastructure para:
 	- App bundle: `dist/macos-osx-arm64/Barraca RRHH.app`
 	- ZIP instalable: `dist/macos-osx-arm64/Barraca-RRHH-osx-arm64.zip`
 	- DMG opcional (solo si se llama el script con tercer argumento `true`)
+
+	### Live Preview en VS Code (sin descargar la app cada vez)
+	1. Instala la extensión recomendada `AvaloniaTeam.vscode-avalonia`.
+	2. Ejecuta la task `watch-macos-live-preview`.
+	3. Cada cambio en XAML/C# se recompila en caliente y ves el resultado al instante en tu app local.
+
+	### Icono de la app macOS
+	- Se usa el logo de Morales como icono de ventana y como icono del bundle `.app` (Dock/Finder).
+	- El empaquetado genera automáticamente `AppIcon.icns` desde `src/Barraca.RRHH.App.Mac/Assets/app-icon.png`.
 
 ### Publicar con GitHub Actions (si tu Mac no puede descargar .NET)
 - Workflow: `.github/workflows/build-macos.yml`

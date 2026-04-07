@@ -5,6 +5,7 @@
         Height="820"
         MinWidth="980"
         MinHeight="680"
+        Icon="avares://Barraca.RRHH.App.Mac/Assets/app-icon.png"
         Title="Barraca RRHH v3 - macOS">
   <Grid RowDefinitions="Auto,*,Auto" Background="#F3F4F6">
     <Border Grid.Row="0" Background="#0B7566" Padding="14">

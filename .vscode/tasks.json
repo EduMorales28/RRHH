@@ -13,6 +13,38 @@
       "problemMatcher": []
     },
     {
+      "label": "run-macos-dev",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "watch-macos-live-preview",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "watch",
+        "--project",
+        "src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj",
+        "run"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
       "label": "publish-macos-arm64",
       "type": "shell",
       "command": "bash",
