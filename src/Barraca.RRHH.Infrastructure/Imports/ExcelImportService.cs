@@ -546,7 +546,43 @@ public class ExcelImportService : IExcelImportService
         var numero = numeroObra.Trim();
         var existente = await _db.Obras.FirstOrDefaultAsync(x => x.NumeroObra == numero);
         if (existente is not null)
+        {
+            var tipoLimpio = (tipoOriginal ?? string.Empty).Trim();
+            var nombreLimpio = string.IsNullOrWhiteSpace(nombreObra) ? existente.Nombre : nombreObra.Trim();
+            var clienteLimpio = string.IsNullOrWhiteSpace(cliente) ? existente.Cliente : cliente.Trim();
+
+            var huboCambios = false;
+
+            if (!string.Equals(existente.Nombre, nombreLimpio, StringComparison.Ordinal))
+            {
+                existente.Nombre = nombreLimpio;
+                huboCambios = true;
+            }
+
+            if (!string.Equals(existente.TipoObraOriginal, tipoLimpio, StringComparison.Ordinal))
+            {
+                existente.TipoObraOriginal = tipoLimpio;
+                existente.TipoObra = TipoObraParser.Parse(tipoLimpio);
+                huboCambios = true;
+            }
+
+            if (!string.Equals(existente.Cliente, clienteLimpio, StringComparison.Ordinal))
+            {
+                existente.Cliente = clienteLimpio;
+                huboCambios = true;
+            }
+
+            if (!existente.Activa)
+            {
+                existente.Activa = true;
+                huboCambios = true;
+            }
+
+            if (huboCambios)
+                await _db.SaveChangesAsync();
+
             return (existente, false);
+        }
 
         var nuevo = new Obra
         {
