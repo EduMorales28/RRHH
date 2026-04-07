@@ -31,6 +31,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private string _rutaObras = string.Empty;
     private string _rutaHoras = string.Empty;
     private string _rutaPagos = string.Empty;
+    private string _carpetaPlantillas = string.Empty;
 
     public MainWindowViewModel(
         IDashboardService dashboardService,
@@ -150,6 +151,12 @@ public class MainWindowViewModel : INotifyPropertyChanged
         set => SetField(ref _rutaPagos, value);
     }
 
+    public string CarpetaPlantillas
+    {
+        get => _carpetaPlantillas;
+        set => SetField(ref _carpetaPlantillas, value);
+    }
+
     private async Task RefrescarAsync()
     {
         try
@@ -203,11 +210,12 @@ public class MainWindowViewModel : INotifyPropertyChanged
         try
         {
             var periodoNormalizado = NormalizarPeriodo(Periodo);
+            var baseFolder = string.IsNullOrWhiteSpace(CarpetaPlantillas) ? null : CarpetaPlantillas.Trim();
 
-            var f = ResolverRutaPlantilla(RutaFuncionarios, new[] { "FUNCIONARIO", "FUNCIONARIOS" });
-            var o = ResolverRutaPlantilla(RutaObras, new[] { "OBRA", "OBRAS" });
-            var h = ResolverRutaPlantilla(RutaHoras, new[] { "HORAS" });
-            var p = ResolverRutaPlantilla(RutaPagos, new[] { "PAGO", "PAGOS" });
+            var f = ResolverRutaPlantilla(RutaFuncionarios, new[] { "FUNCIONARIO", "FUNCIONARIOS" }, baseFolder);
+            var o = ResolverRutaPlantilla(RutaObras, new[] { "OBRA", "OBRAS" }, baseFolder);
+            var h = ResolverRutaPlantilla(RutaHoras, new[] { "HORAS" }, baseFolder);
+            var p = ResolverRutaPlantilla(RutaPagos, new[] { "PAGO", "PAGOS" }, baseFolder);
 
             RutaFuncionarios = f;
             RutaObras = o;
@@ -228,16 +236,29 @@ public class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    private static string ResolverRutaPlantilla(string rutaIngresada, string[] pistas)
+    public async Task ImportarDesdeCarpetaAsync(string folderPath)
+    {
+        CarpetaPlantillas = folderPath;
+        RutaFuncionarios = string.Empty;
+        RutaObras = string.Empty;
+        RutaHoras = string.Empty;
+        RutaPagos = string.Empty;
+        await ImportarPlantillasAsync();
+    }
+
+    private static string ResolverRutaPlantilla(string rutaIngresada, string[] pistas, string? baseFolder)
     {
         if (!string.IsNullOrWhiteSpace(rutaIngresada) && File.Exists(rutaIngresada))
             return rutaIngresada;
 
-        var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
-        if (!Directory.Exists(downloads))
-            throw new InvalidOperationException("No existe la carpeta Downloads para autodetección de plantillas.");
+        var root = string.IsNullOrWhiteSpace(baseFolder)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads")
+            : baseFolder;
 
-        var files = Directory.EnumerateFiles(downloads, "*.xlsx", SearchOption.TopDirectoryOnly)
+        if (!Directory.Exists(root))
+            throw new InvalidOperationException($"No existe la carpeta para autodetección de plantillas: {root}");
+
+        var files = Directory.EnumerateFiles(root, "*.xlsx", SearchOption.TopDirectoryOnly)
             .Where(x => pistas.Any(p => Path.GetFileName(x).ToUpperInvariant().Contains(p)))
             .Select(x => new FileInfo(x))
             .OrderByDescending(x => x.LastWriteTimeUtc)
