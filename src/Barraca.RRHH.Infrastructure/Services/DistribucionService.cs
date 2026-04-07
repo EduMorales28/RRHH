@@ -33,6 +33,8 @@ public class DistribucionService : IDistribucionService
             .Where(x => x.PeriodoId == periodoEntity.Id)
             .ToListAsync();
 
+        var obrasSedePorTipo = await ObtenerObrasSedePorTipoAsync();
+
         var pagos = await _db.PagosMensuales
             .Where(x => x.PeriodoId == periodoEntity.Id)
             .ToListAsync();
@@ -53,6 +55,8 @@ public class DistribucionService : IDistribucionService
         var horasDistribuibles = horas
             .Where(x => x.Obra is not null && x.HorasEquivalentes > 0m)
             .ToList();
+
+        ValidarSedesParaAdministrativos(horasDistribuibles, obrasSedePorTipo);
 
         var horasTotalesPorFuncionario = horasDistribuibles
             .GroupBy(x => x.FuncionarioId)
@@ -132,7 +136,7 @@ public class DistribucionService : IDistribucionService
 
                 sumaFuncionarioDistribuida += montoRegistro;
 
-                var obra = reg.Obra!;
+                var obra = ObtenerObraDestinoParaDistribucion(reg, obrasSedePorTipo);
                 lineasBase.Add(new LineaDistribucionBase
                 {
                     TipoObra = obra.TipoObra,
@@ -365,5 +369,66 @@ public class DistribucionService : IDistribucionService
 
         var compacta = string.Join(' ', tokens).ToLowerInvariant();
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(compacta);
+    }
+
+    private static bool EsCategoriaAdministrativa(string? categoria)
+    {
+        if (string.IsNullOrWhiteSpace(categoria))
+            return false;
+
+        return categoria.Contains("administrativo", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private Obra ObtenerObraDestinoParaDistribucion(HoraMensual reg, Dictionary<TipoObra, Obra> obrasSedePorTipo)
+    {
+        var obraBase = reg.Obra!;
+        if (!EsCategoriaAdministrativa(reg.Categoria))
+            return obraBase;
+
+        if (obraBase.TipoObra is TipoObra.Construccion or TipoObra.IndustriaYComercio or TipoObra.NA
+            && obrasSedePorTipo.TryGetValue(obraBase.TipoObra, out var obraSede))
+        {
+            return obraSede;
+        }
+
+        return obraBase;
+    }
+
+    private static void ValidarSedesParaAdministrativos(
+        List<HoraMensual> horasDistribuibles,
+        Dictionary<TipoObra, Obra> obrasSedePorTipo)
+    {
+        var tiposNecesarios = horasDistribuibles
+            .Where(x => x.Obra is not null && EsCategoriaAdministrativa(x.Categoria))
+            .Select(x => x.Obra!.TipoObra)
+            .Where(t => t is TipoObra.Construccion or TipoObra.IndustriaYComercio or TipoObra.NA)
+            .Distinct()
+            .ToList();
+
+        var faltantes = tiposNecesarios
+            .Where(t => !obrasSedePorTipo.ContainsKey(t))
+            .ToList();
+
+        if (faltantes.Count == 0)
+            return;
+
+        var detalle = string.Join(", ", faltantes.Select(t => t.ToString()));
+        throw new InvalidOperationException(
+            "No se puede distribuir categorías Administrativas porque faltan obras SEDE por tipo. " +
+            $"Tipos faltantes: {detalle}. " +
+            "Debe existir al menos una obra cuyo nombre contenga 'SEDE' para cada tipo requerido.");
+    }
+
+    private async Task<Dictionary<TipoObra, Obra>> ObtenerObrasSedePorTipoAsync()
+    {
+        var obrasActivas = await _db.Obras
+            .Where(x => x.Activa)
+            .OrderBy(x => x.NumeroObra)
+            .ToListAsync();
+
+        return obrasActivas
+            .Where(x => x.Nombre.Contains("sede", StringComparison.OrdinalIgnoreCase))
+            .GroupBy(x => x.TipoObra)
+            .ToDictionary(g => g.Key, g => g.First());
     }
 }
