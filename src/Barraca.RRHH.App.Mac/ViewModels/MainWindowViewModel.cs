@@ -31,7 +31,6 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private string _rutaObras = string.Empty;
     private string _rutaHoras = string.Empty;
     private string _rutaPagos = string.Empty;
-    private string _carpetaPlantillas = string.Empty;
 
     public MainWindowViewModel(
         IDashboardService dashboardService,
@@ -52,8 +51,12 @@ public class MainWindowViewModel : INotifyPropertyChanged
             "Reportes");
 
         RefrescarCommand = new AsyncCommand(RefrescarAsync);
-    CambiarPeriodoCommand = new AsyncCommand(RefrescarAsync);
+        CambiarPeriodoCommand = new AsyncCommand(RefrescarAsync);
         ImportarPlantillasCommand = new AsyncCommand(ImportarPlantillasAsync);
+        ImportarFuncionariosCommand = new AsyncCommand(ImportarFuncionariosAsync);
+        ImportarObrasCommand = new AsyncCommand(ImportarObrasAsync);
+        ImportarHorasCommand = new AsyncCommand(ImportarHorasAsync);
+        ImportarPagosCommand = new AsyncCommand(ImportarPagosAsync);
         CalcularDistribucionCommand = new AsyncCommand(CalcularDistribucionAsync);
         GenerarReportesCommand = new AsyncCommand(GenerarReportesAsync);
 
@@ -124,6 +127,10 @@ public class MainWindowViewModel : INotifyPropertyChanged
     public ICommand RefrescarCommand { get; }
     public ICommand CambiarPeriodoCommand { get; }
     public ICommand ImportarPlantillasCommand { get; }
+    public ICommand ImportarFuncionariosCommand { get; }
+    public ICommand ImportarObrasCommand { get; }
+    public ICommand ImportarHorasCommand { get; }
+    public ICommand ImportarPagosCommand { get; }
     public ICommand CalcularDistribucionCommand { get; }
     public ICommand GenerarReportesCommand { get; }
 
@@ -149,12 +156,6 @@ public class MainWindowViewModel : INotifyPropertyChanged
     {
         get => _rutaPagos;
         set => SetField(ref _rutaPagos, value);
-    }
-
-    public string CarpetaPlantillas
-    {
-        get => _carpetaPlantillas;
-        set => SetField(ref _carpetaPlantillas, value);
     }
 
     private async Task RefrescarAsync()
@@ -210,12 +211,11 @@ public class MainWindowViewModel : INotifyPropertyChanged
         try
         {
             var periodoNormalizado = NormalizarPeriodo(Periodo);
-            var baseFolder = string.IsNullOrWhiteSpace(CarpetaPlantillas) ? null : CarpetaPlantillas.Trim();
 
-            var f = ResolverRutaPlantilla(RutaFuncionarios, new[] { "FUNCIONARIO", "FUNCIONARIOS" }, baseFolder);
-            var o = ResolverRutaPlantilla(RutaObras, new[] { "OBRA", "OBRAS" }, baseFolder);
-            var h = ResolverRutaPlantilla(RutaHoras, new[] { "HORAS" }, baseFolder);
-            var p = ResolverRutaPlantilla(RutaPagos, new[] { "PAGO", "PAGOS" }, baseFolder);
+            var f = ResolverRutaPlantilla(RutaFuncionarios, new[] { "FUNCIONARIO", "FUNCIONARIOS" });
+            var o = ResolverRutaPlantilla(RutaObras, new[] { "OBRA", "OBRAS" });
+            var h = ResolverRutaPlantilla(RutaHoras, new[] { "HORAS" });
+            var p = ResolverRutaPlantilla(RutaPagos, new[] { "PAGO", "PAGOS" });
 
             RutaFuncionarios = f;
             RutaObras = o;
@@ -236,24 +236,78 @@ public class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    public async Task ImportarDesdeCarpetaAsync(string folderPath)
+    private async Task ImportarFuncionariosAsync()
     {
-        CarpetaPlantillas = folderPath;
-        RutaFuncionarios = string.Empty;
-        RutaObras = string.Empty;
-        RutaHoras = string.Empty;
-        RutaPagos = string.Empty;
-        await ImportarPlantillasAsync();
+        try
+        {
+            var ruta = ResolverRutaPlantilla(RutaFuncionarios, new[] { "FUNCIONARIO", "FUNCIONARIOS" });
+            RutaFuncionarios = ruta;
+            await _excelImportService.ImportarFuncionariosAsync(ruta, "admin");
+            await RefrescarAsync();
+            Status = "Plantilla de Funcionarios importada correctamente.";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Error importando Funcionarios: {ex.Message}";
+        }
     }
 
-    private static string ResolverRutaPlantilla(string rutaIngresada, string[] pistas, string? baseFolder)
+    private async Task ImportarObrasAsync()
+    {
+        try
+        {
+            var ruta = ResolverRutaPlantilla(RutaObras, new[] { "OBRA", "OBRAS" });
+            RutaObras = ruta;
+            await _excelImportService.ImportarObrasAsync(ruta, "admin");
+            await RefrescarAsync();
+            Status = "Plantilla de Obras importada correctamente.";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Error importando Obras: {ex.Message}";
+        }
+    }
+
+    private async Task ImportarHorasAsync()
+    {
+        try
+        {
+            var periodoNormalizado = NormalizarPeriodo(Periodo);
+            var ruta = ResolverRutaPlantilla(RutaHoras, new[] { "HORAS" });
+            RutaHoras = ruta;
+            await _excelImportService.ImportarHorasAsync(ruta, periodoNormalizado, "admin");
+            await RefrescarAsync();
+            Status = "Plantilla de Horas importada correctamente.";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Error importando Horas: {ex.Message}";
+        }
+    }
+
+    private async Task ImportarPagosAsync()
+    {
+        try
+        {
+            var periodoNormalizado = NormalizarPeriodo(Periodo);
+            var ruta = ResolverRutaPlantilla(RutaPagos, new[] { "PAGO", "PAGOS" });
+            RutaPagos = ruta;
+            await _excelImportService.ImportarPagosAsync(ruta, periodoNormalizado, "admin");
+            await RefrescarAsync();
+            Status = "Plantilla de Pagos importada correctamente.";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Error importando Pagos: {ex.Message}";
+        }
+    }
+
+    private static string ResolverRutaPlantilla(string rutaIngresada, string[] pistas)
     {
         if (!string.IsNullOrWhiteSpace(rutaIngresada) && File.Exists(rutaIngresada))
             return rutaIngresada;
 
-        var root = string.IsNullOrWhiteSpace(baseFolder)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads")
-            : baseFolder;
+        var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
 
         if (!Directory.Exists(root))
             throw new InvalidOperationException($"No existe la carpeta para autodetección de plantillas: {root}");

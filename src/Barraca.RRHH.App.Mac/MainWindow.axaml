@@ -59,28 +59,32 @@
         <Grid Margin="16" RowDefinitions="Auto,Auto,*" ColumnDefinitions="2*,*">
           <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="10" Margin="0,0,0,14">
             <Button Content="Importar 4 plantillas" Command="{Binding ImportarPlantillasCommand}" Padding="14,8"/>
-            <Button Content="Seleccionar carpeta e importar" Click="SeleccionarCarpetaEImportar_Click" Padding="14,8"/>
             <Button Content="Refrescar dashboard" Command="{Binding RefrescarCommand}" Padding="14,8"/>
             <Button Content="Calcular distribución" Command="{Binding CalcularDistribucionCommand}" Padding="14,8"/>
             <Button Content="Generar reportes del período" Command="{Binding GenerarReportesCommand}" Padding="14,8"/>
           </StackPanel>
 
           <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,12" Background="White" CornerRadius="10" Padding="12">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="180,*" >
-              <TextBlock Grid.Row="0" Grid.Column="0" Text="Carpeta plantillas" VerticalAlignment="Center"/>
-              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding CarpetaPlantillas}" Watermark="Carpeta base (opcional)"/>
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="180,*,Auto,Auto" ColumnSpacing="8">
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Plantilla Funcionarios" VerticalAlignment="Center"/>
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding RutaFuncionarios}" Watermark="Ruta .xlsx"/>
+              <Button Grid.Row="0" Grid.Column="2" Content="Seleccionar" Click="SeleccionarFuncionarios_Click" Padding="12,6"/>
+              <Button Grid.Row="0" Grid.Column="3" Content="Importar" Command="{Binding ImportarFuncionariosCommand}" Padding="12,6"/>
 
-              <TextBlock Grid.Row="1" Grid.Column="0" Text="Plantilla Funcionarios" VerticalAlignment="Center"/>
-              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RutaFuncionarios}" Watermark="Ruta .xlsx (si queda vacío, se autodetecta)"/>
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Plantilla Obras" VerticalAlignment="Center" Margin="0,8,0,0"/>
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RutaObras}" Margin="0,8,0,0"/>
+              <Button Grid.Row="1" Grid.Column="2" Content="Seleccionar" Click="SeleccionarObras_Click" Padding="12,6" Margin="0,8,0,0"/>
+              <Button Grid.Row="1" Grid.Column="3" Content="Importar" Command="{Binding ImportarObrasCommand}" Padding="12,6" Margin="0,8,0,0"/>
 
-              <TextBlock Grid.Row="2" Grid.Column="0" Text="Plantilla Obras" VerticalAlignment="Center" Margin="0,8,0,0"/>
-              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RutaObras}" Margin="0,8,0,0"/>
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="Plantilla Horas" VerticalAlignment="Center" Margin="0,8,0,0"/>
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RutaHoras}" Margin="0,8,0,0"/>
+              <Button Grid.Row="2" Grid.Column="2" Content="Seleccionar" Click="SeleccionarHoras_Click" Padding="12,6" Margin="0,8,0,0"/>
+              <Button Grid.Row="2" Grid.Column="3" Content="Importar" Command="{Binding ImportarHorasCommand}" Padding="12,6" Margin="0,8,0,0"/>
 
-              <TextBlock Grid.Row="3" Grid.Column="0" Text="Plantilla Horas" VerticalAlignment="Center" Margin="0,8,0,0"/>
-              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding RutaHoras}" Margin="0,8,0,0"/>
-
-              <TextBlock Grid.Row="4" Grid.Column="0" Text="Plantilla Pagos" VerticalAlignment="Center" Margin="0,8,0,0"/>
-              <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding RutaPagos}" Margin="0,8,0,0"/>
+              <TextBlock Grid.Row="3" Grid.Column="0" Text="Plantilla Pagos" VerticalAlignment="Center" Margin="0,8,0,0"/>
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding RutaPagos}" Margin="0,8,0,0"/>
+              <Button Grid.Row="3" Grid.Column="2" Content="Seleccionar" Click="SeleccionarPagos_Click" Padding="12,6" Margin="0,8,0,0"/>
+              <Button Grid.Row="3" Grid.Column="3" Content="Importar" Command="{Binding ImportarPagosCommand}" Padding="12,6" Margin="0,8,0,0"/>
             </Grid>
           </Border>
 

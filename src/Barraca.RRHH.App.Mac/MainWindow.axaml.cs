@@ -12,22 +12,53 @@ public partial class MainWindow : Window
         InitializeComponent();
     }
 
-    private async void SeleccionarCarpetaEImportar_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async Task<string?> SeleccionarArchivoExcelAsync()
     {
         var top = TopLevel.GetTopLevel(this);
         if (top?.StorageProvider is null)
-            return;
+            return null;
 
-        var folders = await top.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Seleccionar carpeta con plantillas"
+            Title = "Seleccionar plantilla Excel",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Excel")
+                {
+                    Patterns = new[] { "*.xlsx" }
+                }
+            }
         });
 
-        var selected = folders.FirstOrDefault();
+        var selected = files.FirstOrDefault();
         if (selected is null)
-            return;
+            return null;
 
+        return selected.Path.LocalPath;
+    }
+
+    private async void SeleccionarFuncionarios_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
         if (DataContext is MainWindowViewModel vm)
-            await vm.ImportarDesdeCarpetaAsync(selected.Path.LocalPath);
+            vm.RutaFuncionarios = await SeleccionarArchivoExcelAsync() ?? vm.RutaFuncionarios;
+    }
+
+    private async void SeleccionarObras_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+            vm.RutaObras = await SeleccionarArchivoExcelAsync() ?? vm.RutaObras;
+    }
+
+    private async void SeleccionarHoras_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+            vm.RutaHoras = await SeleccionarArchivoExcelAsync() ?? vm.RutaHoras;
+    }
+
+    private async void SeleccionarPagos_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+            vm.RutaPagos = await SeleccionarArchivoExcelAsync() ?? vm.RutaPagos;
     }
 }
