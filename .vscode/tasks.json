@@ -4,7 +4,7 @@
     {
       "label": "restore-macos-project",
       "type": "shell",
-      "command": "dotnet",
+      "command": "/opt/homebrew/bin/dotnet",
       "args": [
         "restore",
         "src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj"
@@ -15,7 +15,7 @@
     {
       "label": "run-macos-dev",
       "type": "shell",
-      "command": "dotnet",
+      "command": "/opt/homebrew/bin/dotnet",
       "args": [
         "run",
         "--project",
@@ -30,7 +30,7 @@
     {
       "label": "watch-macos-live-preview",
       "type": "shell",
-      "command": "dotnet",
+      "command": "/opt/homebrew/bin/dotnet",
       "args": [
         "watch",
         "--project",
