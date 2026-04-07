@@ -69,6 +69,7 @@ Se agregó el proyecto `Barraca.RRHH.App.Mac` que reutiliza servicios de Applica
 
 ### Publicar con VS Code Task
 - Tasks disponibles en `.vscode/tasks.json`:
+	- `restore-macos-project`
 	- `publish-macos-arm64`
 	- `package-macos-arm64`
 	- `package-macos-x64`

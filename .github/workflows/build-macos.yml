@@ -22,8 +22,8 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore
-        run: dotnet restore Barraca.RRHH.sln
+      - name: Restore macOS app graph
+        run: dotnet restore src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj
 
       - name: Package app and dmg (osx-arm64)
         run: |

@@ -2,12 +2,12 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "restore-solution",
+      "label": "restore-macos-project",
       "type": "shell",
       "command": "dotnet",
       "args": [
         "restore",
-        "Barraca.RRHH.sln"
+        "src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj"
       ],
       "group": "build",
       "problemMatcher": []
@@ -29,7 +29,7 @@
       },
       "group": "build",
       "dependsOn": [
-        "restore-solution"
+        "restore-macos-project"
       ],
       "problemMatcher": "$msCompile"
     },
@@ -50,7 +50,7 @@
       },
       "group": "build",
       "dependsOn": [
-        "restore-solution"
+        "restore-macos-project"
       ],
       "problemMatcher": []
     },
@@ -71,7 +71,7 @@
       },
       "group": "build",
       "dependsOn": [
-        "restore-solution"
+        "restore-macos-project"
       ],
       "problemMatcher": []
     }
