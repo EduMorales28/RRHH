@@ -35,6 +35,47 @@ public class DistribucionService : IDistribucionService
             .Where(x => x.PeriodoId == periodoEntity.Id)
             .ToListAsync();
 
+        var funcionarios = await _db.Funcionarios
+            .Select(x => new { x.Id, x.NumeroFuncionario, x.Nombre })
+            .ToListAsync();
+        var funcionariosMap = funcionarios.ToDictionary(x => x.Id, x => x);
+
+        // Base contable por funcionario: siempre adelanto + liquido + retencion.
+        var totalPorFuncionario = pagos
+            .GroupBy(x => x.FuncionarioId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(x => x.Adelanto + x.Liquido + x.Retencion));
+
+        // Solo horas distribuibles: con obra asociada y horas positivas.
+        var horasDistribuibles = horas
+            .Where(x => x.Obra is not null && x.HorasEquivalentes > 0m)
+            .ToList();
+
+        var horasTotalesPorFuncionario = horasDistribuibles
+            .GroupBy(x => x.FuncionarioId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.HorasEquivalentes));
+
+        var funcionariosConPagoSinHoras = totalPorFuncionario
+            .Where(x => x.Value > 0m && (!horasTotalesPorFuncionario.TryGetValue(x.Key, out var horasFunc) || horasFunc <= 0m))
+            .ToList();
+
+        if (funcionariosConPagoSinHoras.Count > 0)
+        {
+            var detalle = string.Join("; ", funcionariosConPagoSinHoras.Select(x =>
+            {
+                if (funcionariosMap.TryGetValue(x.Key, out var f))
+                    return $"{f.NumeroFuncionario} - {f.Nombre}: total={x.Value:N2}, horas=0";
+
+                return $"FuncionarioId={x.Key}: total={x.Value:N2}, horas=0";
+            }));
+
+            throw new InvalidOperationException(
+                "No se puede distribuir: hay funcionarios con pagos y sin horas. " +
+                "Corrige estos casos o asígnalos a un centro de costo especial. " +
+                $"Detalle: {detalle}");
+        }
+
         var resultado = new List<DistribucionLineaDto>();
         CorridaProceso? corrida = null;
         Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? tx = null;
@@ -57,110 +98,197 @@ public class DistribucionService : IDistribucionService
             _db.DistribucionesCosto.RemoveRange(distribucionesPrevias);
         }
 
-        foreach (var tipoObra in Enum.GetValues<TipoObra>())
+        var lineasBase = new List<LineaDistribucionBase>();
+        var controlPorFuncionario = new List<ControlFuncionario>();
+
+        foreach (var item in totalPorFuncionario.Where(x => x.Value > 0m).OrderBy(x => x.Key))
         {
-            var horasTipo = horas.Where(x => x.Obra != null && x.Obra.TipoObra == tipoObra).ToList();
-            if (!horasTipo.Any())
+            var funcionarioId = item.Key;
+            var totalFuncionario = item.Value;
+
+            if (!horasTotalesPorFuncionario.TryGetValue(funcionarioId, out var horasFuncionario) || horasFuncionario <= 0m)
                 continue;
 
-            // Regla de negocio: el total del tipo de obra siempre sale de
-            // Adelanto + Liquido + Retencion, no de un total importado en crudo.
-            var costoTotalTipo = pagos
-                .Where(x => x.TipoObra == tipoObra)
-                .Sum(x => x.Adelanto + x.Liquido + x.Retencion);
-
-            var horasTotalesTipo = horasTipo.Sum(x => x.HorasEquivalentes);
-
-            if (horasTotalesTipo <= 0 || costoTotalTipo <= 0)
-                continue;
-
-            var obrasDelTipo = horasTipo
-                .GroupBy(x => new
-                {
-                    x.ObraId,
-                    NumeroObra = x.Obra!.NumeroObra,
-                    NombreObra = x.Obra!.Nombre
-                })
-                .Select(g => new
-                {
-                    g.Key.ObraId,
-                    g.Key.NumeroObra,
-                    g.Key.NombreObra,
-                    HorasObra = g.Sum(x => x.HorasEquivalentes)
-                })
-                .OrderBy(x => x.NumeroObra)
+            var registrosFuncionario = horasDistribuibles
+                .Where(x => x.FuncionarioId == funcionarioId)
+                .OrderBy(x => x.Id)
                 .ToList();
 
-            var montosPorObra = DistribuirMontoConCierre(
-                obrasDelTipo.Select(x => (x.ObraId, x.HorasObra)).ToList(),
-                costoTotalTipo);
+            var valorHoraFuncionario = totalFuncionario / horasFuncionario;
+            decimal sumaFuncionarioDistribuida = 0m;
 
-            foreach (var obra in obrasDelTipo)
+            for (var i = 0; i < registrosFuncionario.Count; i++)
             {
-                if (!montosPorObra.TryGetValue(obra.ObraId, out var montoObra) || montoObra <= 0)
-                    continue;
+                var reg = registrosFuncionario[i];
+                var montoRegistro = reg.HorasEquivalentes * valorHoraFuncionario;
 
-                var categoriasObra = horasTipo
-                    .Where(x => x.ObraId == obra.ObraId)
-                    .GroupBy(x => x.Categoria)
-                    .Select(g => new
-                    {
-                        Categoria = g.Key,
-                        HorasCategoria = g.Sum(x => x.HorasEquivalentes)
-                    })
-                    .OrderBy(x => x.Categoria)
-                    .ToList();
-
-                var montosPorCategoria = DistribuirMontoConCierre(
-                    categoriasObra.Select(x => (x.Categoria, x.HorasCategoria)).ToList(),
-                    montoObra);
-
-                foreach (var cat in categoriasObra)
+                if (i == registrosFuncionario.Count - 1)
                 {
-                    if (!montosPorCategoria.TryGetValue(cat.Categoria, out var montoLinea) || cat.HorasCategoria <= 0)
-                        continue;
-
-                    var porcentaje = cat.HorasCategoria / horasTotalesTipo;
-                    var valorHora = Math.Round(montoLinea / cat.HorasCategoria, 2, MidpointRounding.AwayFromZero);
-                    var jornales = Math.Round(cat.HorasCategoria / 8.8m, 2, MidpointRounding.AwayFromZero);
-
-                    var dto = new DistribucionLineaDto
-                    {
-                        TipoObra = tipoObra,
-                        ObraId = obra.ObraId,
-                        NumeroObra = obra.NumeroObra,
-                        NombreObra = obra.NombreObra,
-                        Categoria = cat.Categoria,
-                        HorasLinea = cat.HorasCategoria,
-                        HorasTotalesTipoObra = horasTotalesTipo,
-                        CostoTotalTipoObra = costoTotalTipo,
-                        PorcentajeParticipacion = porcentaje,
-                        MontoLinea = montoLinea,
-                        ValorHora = valorHora,
-                        Jornales = jornales
-                    };
-
-                    resultado.Add(dto);
-
-                    if (persistir && corrida is not null)
-                    {
-                        _db.DistribucionesCosto.Add(new DistribucionCosto
-                        {
-                            PeriodoId = periodoEntity.Id,
-                            CorridaProceso = corrida,
-                            TipoObra = dto.TipoObra,
-                            ObraId = dto.ObraId,
-                            Categoria = dto.Categoria,
-                            HorasLinea = dto.HorasLinea,
-                            HorasTotalesTipoObra = dto.HorasTotalesTipoObra,
-                            CostoTotalTipoObra = dto.CostoTotalTipoObra,
-                            PorcentajeParticipacion = dto.PorcentajeParticipacion,
-                            MontoLinea = dto.MontoLinea,
-                            ValorHora = dto.ValorHora,
-                            Jornales = dto.Jornales
-                        });
-                    }
+                    var ajuste = totalFuncionario - (sumaFuncionarioDistribuida + montoRegistro);
+                    montoRegistro += ajuste;
                 }
+
+                sumaFuncionarioDistribuida += montoRegistro;
+
+                var obra = reg.Obra!;
+                lineasBase.Add(new LineaDistribucionBase
+                {
+                    TipoObra = obra.TipoObra,
+                    ObraId = obra.Id,
+                    NumeroObra = obra.NumeroObra,
+                    NombreObra = obra.Nombre,
+                    Categoria = reg.Categoria,
+                    Horas = reg.HorasEquivalentes,
+                    Monto = montoRegistro
+                });
+            }
+
+            controlPorFuncionario.Add(new ControlFuncionario
+            {
+                FuncionarioId = funcionarioId,
+                TotalFuncionario = totalFuncionario,
+                TotalDistribuido = sumaFuncionarioDistribuida
+            });
+        }
+
+        var diferenciasFuncionario = controlPorFuncionario
+            .Select(x => new
+            {
+                x.FuncionarioId,
+                x.TotalFuncionario,
+                x.TotalDistribuido,
+                Diferencia = x.TotalFuncionario - x.TotalDistribuido
+            })
+            .Where(x => x.Diferencia != 0m)
+            .ToList();
+
+        if (diferenciasFuncionario.Count > 0)
+        {
+            var detalle = string.Join("; ", diferenciasFuncionario.Select(x =>
+            {
+                if (funcionariosMap.TryGetValue(x.FuncionarioId, out var f))
+                    return $"{f.NumeroFuncionario} - {f.Nombre}: esperado={x.TotalFuncionario:N2}, distribuido={x.TotalDistribuido:N2}, dif={x.Diferencia:N2}";
+
+                return $"FuncionarioId={x.FuncionarioId}: esperado={x.TotalFuncionario:N2}, distribuido={x.TotalDistribuido:N2}, dif={x.Diferencia:N2}";
+            }));
+
+            throw new InvalidOperationException("Error de integridad por funcionario en distribución. " + detalle);
+        }
+
+        var lineasConsolidadas = lineasBase
+            .GroupBy(x => new { x.TipoObra, x.ObraId, x.NumeroObra, x.NombreObra, x.Categoria })
+            .Select(g => new LineaConsolidada
+            {
+                TipoObra = g.Key.TipoObra,
+                ObraId = g.Key.ObraId,
+                NumeroObra = g.Key.NumeroObra,
+                NombreObra = g.Key.NombreObra,
+                Categoria = g.Key.Categoria,
+                Horas = g.Sum(x => x.Horas),
+                Monto = g.Sum(x => x.Monto)
+            })
+            .OrderBy(x => x.TipoObra)
+            .ThenBy(x => x.NumeroObra)
+            .ThenBy(x => x.Categoria)
+            .ToList();
+
+        var totalConsolidado = controlPorFuncionario.Sum(x => x.TotalFuncionario);
+        var totalDistribucionRaw = lineasConsolidadas.Sum(x => x.Monto);
+
+        if (totalConsolidado != totalDistribucionRaw)
+        {
+            throw new InvalidOperationException(
+                $"Error de integridad: total consolidado ({totalConsolidado:N6}) distinto a total distribuido crudo ({totalDistribucionRaw:N6}).");
+        }
+
+        var lineasFinales = lineasConsolidadas
+            .Select(x => new LineaConsolidada
+            {
+                TipoObra = x.TipoObra,
+                ObraId = x.ObraId,
+                NumeroObra = x.NumeroObra,
+                NombreObra = x.NombreObra,
+                Categoria = x.Categoria,
+                Horas = x.Horas,
+                Monto = Math.Round(x.Monto, 2, MidpointRounding.AwayFromZero)
+            })
+            .ToList();
+
+        var totalDistribucionFinal = lineasFinales.Sum(x => x.Monto);
+        var diferenciaFinal = Math.Round(totalConsolidado - totalDistribucionFinal, 2, MidpointRounding.AwayFromZero);
+        if (diferenciaFinal != 0m && lineasFinales.Count > 0)
+            lineasFinales[^1].Monto += diferenciaFinal;
+
+        totalDistribucionFinal = lineasFinales.Sum(x => x.Monto);
+        if (totalDistribucionFinal != totalConsolidado)
+        {
+            var detalle = string.Join("; ", controlPorFuncionario.Select(x =>
+            {
+                var diff = x.TotalFuncionario - x.TotalDistribuido;
+                if (funcionariosMap.TryGetValue(x.FuncionarioId, out var f))
+                    return $"{f.NumeroFuncionario} - {f.Nombre}: dif={diff:N2}";
+
+                return $"FuncionarioId={x.FuncionarioId}: dif={diff:N2}";
+            }));
+
+            throw new InvalidOperationException(
+                "Error de integridad: SUMA_TOTAL_DISTRIBUIDA != SUMA_TOTAL_CONSOLIDADO. " +
+                $"Consolidado={totalConsolidado:N2}, Distribuido={totalDistribucionFinal:N2}. " +
+                $"Detalle por funcionario: {detalle}");
+        }
+
+        var resumenTipo = lineasFinales
+            .GroupBy(x => x.TipoObra)
+            .ToDictionary(
+                g => g.Key,
+                g => new
+                {
+                    Horas = g.Sum(x => x.Horas),
+                    Monto = g.Sum(x => x.Monto)
+                });
+
+        foreach (var linea in lineasFinales)
+        {
+            var resumen = resumenTipo[linea.TipoObra];
+            var porcentaje = resumen.Horas <= 0m ? 0m : linea.Horas / resumen.Horas;
+            var valorHora = linea.Horas <= 0m ? 0m : Math.Round(linea.Monto / linea.Horas, 2, MidpointRounding.AwayFromZero);
+            var jornales = Math.Round(linea.Horas / 8.8m, 2, MidpointRounding.AwayFromZero);
+
+            var dto = new DistribucionLineaDto
+            {
+                TipoObra = linea.TipoObra,
+                ObraId = linea.ObraId,
+                NumeroObra = linea.NumeroObra,
+                NombreObra = linea.NombreObra,
+                Categoria = linea.Categoria,
+                HorasLinea = linea.Horas,
+                HorasTotalesTipoObra = resumen.Horas,
+                CostoTotalTipoObra = resumen.Monto,
+                PorcentajeParticipacion = porcentaje,
+                MontoLinea = linea.Monto,
+                ValorHora = valorHora,
+                Jornales = jornales
+            };
+
+            resultado.Add(dto);
+
+            if (persistir && corrida is not null)
+            {
+                _db.DistribucionesCosto.Add(new DistribucionCosto
+                {
+                    PeriodoId = periodoEntity.Id,
+                    CorridaProceso = corrida,
+                    TipoObra = dto.TipoObra,
+                    ObraId = dto.ObraId,
+                    Categoria = dto.Categoria,
+                    HorasLinea = dto.HorasLinea,
+                    HorasTotalesTipoObra = dto.HorasTotalesTipoObra,
+                    CostoTotalTipoObra = dto.CostoTotalTipoObra,
+                    PorcentajeParticipacion = dto.PorcentajeParticipacion,
+                    MontoLinea = dto.MontoLinea,
+                    ValorHora = dto.ValorHora,
+                    Jornales = dto.Jornales
+                });
             }
         }
 
@@ -193,49 +321,32 @@ public class DistribucionService : IDistribucionService
         return resultado;
     }
 
-    private static Dictionary<TKey, decimal> DistribuirMontoConCierre<TKey>(
-        IReadOnlyList<(TKey Key, decimal Horas)> items,
-        decimal montoTotal)
-        where TKey : notnull
+    private sealed class LineaDistribucionBase
     {
-        var resultado = new Dictionary<TKey, decimal>();
-        if (items.Count == 0 || montoTotal <= 0)
-            return resultado;
+        public TipoObra TipoObra { get; set; }
+        public int ObraId { get; set; }
+        public string NumeroObra { get; set; } = string.Empty;
+        public string NombreObra { get; set; } = string.Empty;
+        public string Categoria { get; set; } = string.Empty;
+        public decimal Horas { get; set; }
+        public decimal Monto { get; set; }
+    }
 
-        var horasTotales = items.Sum(x => x.Horas);
-        if (horasTotales <= 0)
-            return resultado;
+    private sealed class LineaConsolidada
+    {
+        public TipoObra TipoObra { get; set; }
+        public int ObraId { get; set; }
+        public string NumeroObra { get; set; } = string.Empty;
+        public string NombreObra { get; set; } = string.Empty;
+        public string Categoria { get; set; } = string.Empty;
+        public decimal Horas { get; set; }
+        public decimal Monto { get; set; }
+    }
 
-        var calculados = items
-            .Select(x => new
-            {
-                x.Key,
-                x.Horas,
-                Monto = Math.Round((x.Horas / horasTotales) * montoTotal, 2, MidpointRounding.AwayFromZero)
-            })
-            .ToList();
-
-        var suma = calculados.Sum(x => x.Monto);
-        var diferencia = Math.Round(montoTotal - suma, 2, MidpointRounding.AwayFromZero);
-
-        if (diferencia != 0m)
-        {
-            var ancla = calculados
-                .OrderByDescending(x => x.Horas)
-                .First();
-
-            calculados.Remove(ancla);
-            calculados.Add(new
-            {
-                ancla.Key,
-                ancla.Horas,
-                Monto = ancla.Monto + diferencia
-            });
-        }
-
-        foreach (var item in calculados)
-            resultado[item.Key] = item.Monto;
-
-        return resultado;
+    private sealed class ControlFuncionario
+    {
+        public int FuncionarioId { get; set; }
+        public decimal TotalFuncionario { get; set; }
+        public decimal TotalDistribuido { get; set; }
     }
 }
