@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Barraca.RRHH.Application.DTOs;
 
@@ -53,7 +55,7 @@ public partial class InconsistenciasWindow : Window
             var detalleError = await _cargarDetalle(error.Tipo, error.FuncionarioId);
             foreach (var item in detalleError)
             {
-                Detalles.Add(new DetalleEditableRow
+                var row = new DetalleEditableRow
                 {
                     TipoError = error.Tipo,
                     NumeroFuncionario = error.NumeroFuncionario,
@@ -66,7 +68,10 @@ public partial class InconsistenciasWindow : Window
                     MontoOHoras = item.MontoOHoras,
                     Observacion = item.Observacion,
                     NumeroFuncionarioDestino = item.NumeroFuncionarioDestino
-                });
+                };
+
+                row.MarcarComoGuardado();
+                Detalles.Add(row);
             }
         }
 
@@ -94,6 +99,7 @@ public partial class InconsistenciasWindow : Window
         try
         {
             await _guardarDetalle(fila.ToDto());
+            fila.MarcarComoGuardado();
             await RefrescarAsync();
             TxtEstado.Text = "Fila guardada correctamente.";
         }
@@ -107,11 +113,14 @@ public partial class InconsistenciasWindow : Window
     {
         try
         {
-            foreach (var fila in Detalles)
+            var pendientes = Detalles.Where(x => x.IsDirty).ToList();
+            foreach (var fila in pendientes)
                 await _guardarDetalle(fila.ToDto());
 
             await RefrescarAsync();
-            TxtEstado.Text = "Se guardaron todas las filas editadas.";
+            TxtEstado.Text = pendientes.Count == 0
+                ? "No había cambios pendientes por guardar."
+                : $"Se guardaron {pendientes.Count} filas editadas.";
         }
         catch (Exception ex)
         {
@@ -121,7 +130,21 @@ public partial class InconsistenciasWindow : Window
 }
 
 public sealed class DetalleEditableRow
+    : INotifyPropertyChanged
 {
+    private string _categoriaOTipo = string.Empty;
+    private decimal _montoOHoras;
+    private string _observacion = string.Empty;
+    private string _numeroFuncionarioDestino = string.Empty;
+    private bool _isDirty;
+
+    private string _originalCategoriaOTipo = string.Empty;
+    private decimal _originalMontoOHoras;
+    private string _originalObservacion = string.Empty;
+    private string _originalNumeroFuncionarioDestino = string.Empty;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     public string TipoError { get; set; } = string.Empty;
     public string NumeroFuncionario { get; set; } = string.Empty;
     public string NombreFuncionario { get; set; } = string.Empty;
@@ -129,10 +152,86 @@ public sealed class DetalleEditableRow
     public int RegistroId { get; set; }
     public int FilaOrigen { get; set; }
     public string Referencia { get; set; } = string.Empty;
-    public string CategoriaOTipo { get; set; } = string.Empty;
-    public decimal MontoOHoras { get; set; }
-    public string Observacion { get; set; } = string.Empty;
-    public string NumeroFuncionarioDestino { get; set; } = string.Empty;
+
+    public string CategoriaOTipo
+    {
+        get => _categoriaOTipo;
+        set
+        {
+            if (SetField(ref _categoriaOTipo, value))
+                EvaluarDirty();
+        }
+    }
+
+    public decimal MontoOHoras
+    {
+        get => _montoOHoras;
+        set
+        {
+            if (SetField(ref _montoOHoras, value))
+                EvaluarDirty();
+        }
+    }
+
+    public string Observacion
+    {
+        get => _observacion;
+        set
+        {
+            if (SetField(ref _observacion, value))
+                EvaluarDirty();
+        }
+    }
+
+    public string NumeroFuncionarioDestino
+    {
+        get => _numeroFuncionarioDestino;
+        set
+        {
+            if (SetField(ref _numeroFuncionarioDestino, value))
+                EvaluarDirty();
+        }
+    }
+
+    public bool IsDirty
+    {
+        get => _isDirty;
+        private set
+        {
+            if (SetField(ref _isDirty, value))
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RowBackground)));
+        }
+    }
+
+    public string RowBackground => IsDirty ? "#FFF6BF" : "#FFFFFF";
+
+    public void MarcarComoGuardado()
+    {
+        _originalCategoriaOTipo = _categoriaOTipo;
+        _originalMontoOHoras = _montoOHoras;
+        _originalObservacion = _observacion;
+        _originalNumeroFuncionarioDestino = _numeroFuncionarioDestino;
+        IsDirty = false;
+    }
+
+    private void EvaluarDirty()
+    {
+        IsDirty =
+            !string.Equals(_categoriaOTipo, _originalCategoriaOTipo, StringComparison.Ordinal) ||
+            _montoOHoras != _originalMontoOHoras ||
+            !string.Equals(_observacion, _originalObservacion, StringComparison.Ordinal) ||
+            !string.Equals(_numeroFuncionarioDestino, _originalNumeroFuncionarioDestino, StringComparison.Ordinal);
+    }
+
+    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (Equals(field, value))
+            return false;
+
+        field = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        return true;
+    }
 
     public ConsistenciaDetalleRegistroDto ToDto() => new()
     {

@@ -48,7 +48,7 @@
           <ItemsControl ItemsSource="{Binding Detalles}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border BorderBrush="#E2E8F0" BorderThickness="1" Padding="6" Margin="0,0,0,6">
+                <Border BorderBrush="#E2E8F0" BorderThickness="1" Padding="6" Margin="0,0,0,6" Background="{Binding RowBackground}">
                   <Grid ColumnDefinitions="180,70,180,80,70,70,220,170,110,170,120,90">
                     <TextBlock Grid.Column="0" Text="{Binding TipoError}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#B45309"/>
                     <TextBlock Grid.Column="1" Text="{Binding NumeroFuncionario}" VerticalAlignment="Center"/>
