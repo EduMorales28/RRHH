@@ -12,6 +12,14 @@ public partial class InconsistenciasWindow : Window
     public ObservableCollection<ConsistenciaFuncionarioErrorDto> Errores { get; } = new();
     public ObservableCollection<ConsistenciaDetalleRegistroDto> Detalles { get; } = new();
 
+    public InconsistenciasWindow()
+        : this(
+            DateTime.Now.ToString("yyyy-MM"),
+            () => Task.FromResult<IReadOnlyList<ConsistenciaFuncionarioErrorDto>>(Array.Empty<ConsistenciaFuncionarioErrorDto>()),
+            (_, _) => Task.FromResult<IReadOnlyList<ConsistenciaDetalleRegistroDto>>(Array.Empty<ConsistenciaDetalleRegistroDto>()))
+    {
+    }
+
     public InconsistenciasWindow(
         string periodo,
         Func<Task<IReadOnlyList<ConsistenciaFuncionarioErrorDto>>> cargarErrores,

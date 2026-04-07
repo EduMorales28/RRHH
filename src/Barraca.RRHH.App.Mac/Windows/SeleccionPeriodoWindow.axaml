@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Barraca.RRHH.App.Mac.Windows.SeleccionPeriodoWindow"
+        Width="380"
+        Height="220"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Seleccionar período">
+  <Grid Margin="16" RowDefinitions="Auto,Auto,*,Auto">
+    <TextBlock Text="Selecciona mes y año" FontSize="16" FontWeight="SemiBold"/>
+    <TextBlock Grid.Row="1" Margin="0,4,0,12" Text="(solo mes/año, sin día)" Foreground="#64748B"/>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,*" Margin="0,0,0,12">
+      <StackPanel Grid.Column="0" Spacing="6" Margin="0,0,8,0">
+        <TextBlock Text="Mes"/>
+        <ComboBox x:Name="CbMes"/>
+      </StackPanel>
+      <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0">
+        <TextBlock Text="Año"/>
+        <ComboBox x:Name="CbAnio"/>
+      </StackPanel>
+    </Grid>
+
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Content="Cancelar" Click="Cancelar_Click"/>
+      <Button Content="Aceptar" Click="Aceptar_Click"/>
+    </StackPanel>
+  </Grid>
+</Window>

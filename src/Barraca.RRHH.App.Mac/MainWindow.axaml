@@ -21,7 +21,8 @@
         </StackPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
           <TextBlock Text="Período:" Foreground="{DynamicResource BrandTextOnDarkBrush}" VerticalAlignment="Center" />
-          <TextBox Width="120" Text="{Binding Periodo}" Watermark="yyyy-MM" />
+          <TextBox Width="120" Text="{Binding Periodo}" Watermark="yyyy-MM" IsReadOnly="True" />
+          <Button Content="Seleccionar período" Click="SeleccionarPeriodo_Click" />
           <Button Content="Cambiar período" Command="{Binding CambiarPeriodoCommand}" />
           <Button Content="Refrescar" Command="{Binding RefrescarCommand}" />
           <Button Content="Calcular distribucion" Click="CalcularDistribucionConValidacion_Click" />
@@ -107,7 +108,10 @@
           <Border Grid.Row="2" Grid.Column="1" Margin="8,0,0,0" Background="White" CornerRadius="10" Padding="14">
             <StackPanel Spacing="8">
               <TextBlock Text="Destino de reportes" FontSize="18" FontWeight="SemiBold"/>
-              <TextBox Text="{Binding CarpetaReportes}" IsReadOnly="True"/>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBox Width="420" Text="{Binding CarpetaReportes}"/>
+                <Button Content="Seleccionar carpeta" Click="SeleccionarDestinoReportes_Click" />
+              </StackPanel>
               <TextBlock Text="Reportes generados" Margin="0,8,0,0" FontWeight="SemiBold"/>
               <ListBox ItemsSource="{Binding ReportesRecientes}" Height="280"/>
             </StackPanel>

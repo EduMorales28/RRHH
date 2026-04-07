@@ -39,6 +39,22 @@ public partial class MainWindow : Window
         return selected.Path.LocalPath;
     }
 
+    private async Task<string?> SeleccionarCarpetaAsync(string titulo)
+    {
+        var top = TopLevel.GetTopLevel(this);
+        if (top?.StorageProvider is null)
+            return null;
+
+        var folders = await top.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = titulo,
+            AllowMultiple = false
+        });
+
+        var selected = folders.FirstOrDefault();
+        return selected?.Path.LocalPath;
+    }
+
     private async void SeleccionarFuncionarios_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm)
@@ -61,6 +77,31 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainWindowViewModel vm)
             vm.RutaPagos = await SeleccionarArchivoExcelAsync() ?? vm.RutaPagos;
+    }
+
+    private async void SeleccionarDestinoReportes_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        var selected = await SeleccionarCarpetaAsync("Seleccionar carpeta destino de reportes");
+        if (!string.IsNullOrWhiteSpace(selected))
+            vm.CarpetaReportes = selected;
+    }
+
+    private async void SeleccionarPeriodo_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        var modal = new SeleccionPeriodoWindow(vm.Periodo);
+        await modal.ShowDialog(this);
+
+        if (!string.IsNullOrWhiteSpace(modal.PeriodoSeleccionado))
+        {
+            vm.Periodo = modal.PeriodoSeleccionado;
+            vm.CambiarPeriodoCommand.Execute(null);
+        }
     }
 
     private async Task<bool> TieneInconsistenciasAsync(MainWindowViewModel vm, string operacion)

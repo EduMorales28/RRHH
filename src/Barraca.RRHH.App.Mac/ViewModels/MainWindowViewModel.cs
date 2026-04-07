@@ -33,6 +33,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private string _rutaObras = string.Empty;
     private string _rutaHoras = string.Empty;
     private string _rutaPagos = string.Empty;
+    private string _carpetaReportes = string.Empty;
 
     public MainWindowViewModel(
         IDashboardService dashboardService,
@@ -49,10 +50,11 @@ public class MainWindowViewModel : INotifyPropertyChanged
         _excelImportService = excelImportService;
         _consistenciaService = consistenciaService;
 
-        CarpetaReportes = Path.Combine(
+        _carpetaReportes = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "BarracaRRHH",
             "Reportes");
+        Directory.CreateDirectory(_carpetaReportes);
 
         RefrescarCommand = new AsyncCommand(RefrescarAsync);
         CambiarPeriodoCommand = new AsyncCommand(RefrescarAsync);
@@ -81,7 +83,15 @@ public class MainWindowViewModel : INotifyPropertyChanged
         set => SetField(ref _status, value);
     }
 
-    public string CarpetaReportes { get; }
+    public string CarpetaReportes
+    {
+        get => _carpetaReportes;
+        set
+        {
+            var nueva = string.IsNullOrWhiteSpace(value) ? _carpetaReportes : value.Trim();
+            SetField(ref _carpetaReportes, nueva);
+        }
+    }
 
     public string TotalGenerado
     {
