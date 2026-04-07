@@ -19,7 +19,8 @@
       "args": [
         "scripts/package-macos.sh",
         "osx-arm64",
-        "Release"
+        "Release",
+        "false"
       ],
       "options": {
         "cwd": "${workspaceFolder}",
@@ -40,7 +41,8 @@
       "args": [
         "scripts/package-macos.sh",
         "osx-arm64",
-        "Release"
+        "Release",
+        "false"
       ],
       "options": {
         "cwd": "${workspaceFolder}",
@@ -61,7 +63,8 @@
       "args": [
         "scripts/package-macos.sh",
         "osx-x64",
-        "Release"
+        "Release",
+        "false"
       ],
       "options": {
         "cwd": "${workspaceFolder}",

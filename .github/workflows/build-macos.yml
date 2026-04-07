@@ -30,7 +30,7 @@ jobs:
       - name: Package app and dmg (osx-arm64)
         run: |
           chmod +x scripts/package-macos.sh
-          bash scripts/package-macos.sh osx-arm64 Release
+          bash scripts/package-macos.sh osx-arm64 Release false
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

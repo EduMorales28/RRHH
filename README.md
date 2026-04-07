@@ -82,12 +82,13 @@ Esta app reutiliza servicios de Application/Infrastructure para:
 	- `package-macos-x64`
 - Salida esperada:
 	- App bundle: `dist/macos-osx-arm64/Barraca RRHH.app`
-	- Instalador: `dist/macos-osx-arm64/Barraca-RRHH-osx-arm64.dmg`
+	- ZIP instalable: `dist/macos-osx-arm64/Barraca-RRHH-osx-arm64.zip`
+	- DMG opcional (solo si se llama el script con tercer argumento `true`)
 
 ### Publicar con GitHub Actions (si tu Mac no puede descargar .NET)
 - Workflow: `.github/workflows/build-macos.yml`
 - Ejecuta `workflow_dispatch` desde GitHub y descarga el artefacto `barraca-rrhh-macos-arm64`.
-- Ese artefacto incluye `.app` y `.dmg`.
+- Ese artefacto incluye `.app` y `.zip` (sin `.dmg` para evitar errores de espacio en runner).
 
 ### Si macOS dice "archivo dañado"
 Cuando el archivo se descarga desde Internet, macOS puede bloquearlo por cuarentena.
