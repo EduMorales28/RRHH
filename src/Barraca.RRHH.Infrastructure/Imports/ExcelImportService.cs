@@ -56,6 +56,18 @@ public class ExcelImportService : IExcelImportService
             var cuentaVieja = row.Cell(7).GetString().Trim();
             var tipoPago = row.Cell(4).GetString().Trim();
 
+            // Layout alternativo: si no hay columnas bancarias, E se toma como observación general.
+            if (string.IsNullOrWhiteSpace(cuentaNueva) && string.IsNullOrWhiteSpace(cuentaVieja) && !string.IsNullOrWhiteSpace(banco))
+            {
+                _db.IncidenciasImportacion.Add(new IncidenciaImportacion
+                {
+                    TipoArchivo = "FUNCIONARIOS",
+                    CodigoReferencia = numero,
+                    Descripcion = $"Observación general: {funcionario.Nombre} - {banco}"
+                });
+                banco = string.Empty;
+            }
+
             var cuentaExistente = funcionario.CuentasPago
                 .FirstOrDefault(x => x.Banco == banco && x.CuentaNueva == cuentaNueva && x.CuentaVieja == cuentaVieja);
 
@@ -193,6 +205,21 @@ public class ExcelImportService : IExcelImportService
 
                 var nombreObra = row.Cell(6).GetString().Trim();
                 var tipoOriginal = row.Cell(7).GetString().Trim();
+                var tipoObra = TipoObraParser.Parse(tipoOriginal);
+
+                var periodoFila = row.Cell(4).GetString().Trim();
+                if (!string.IsNullOrWhiteSpace(periodoFila) && !string.Equals(periodoFila, periodoCodigo, StringComparison.OrdinalIgnoreCase))
+                {
+                    _db.IncidenciasImportacion.Add(new IncidenciaImportacion
+                    {
+                        TipoArchivo = "HORAS",
+                        PeriodoCodigo = periodoCodigo,
+                        FilaOrigen = row.RowNumber(),
+                        CodigoReferencia = numeroFuncionario,
+                        Descripcion = $"Período en fila ({periodoFila}) distinto al período activo ({periodoCodigo})."
+                    });
+                    incidencias++;
+                }
 
                 var resultadoFuncionario = await ObtenerOCrearFuncionarioAsync(numeroFuncionario, nombreFuncionario);
                 var funcionario = resultadoFuncionario.entidad;
@@ -210,7 +237,23 @@ public class ExcelImportService : IExcelImportService
                     incidencias++;
                 }
 
-                var cliente = row.Cell(11).GetString().Trim();
+                // Soporta dos layouts de HORAS:
+                // v1: H comunes, I extras, J totales, K cliente
+                // v2: H cliente, I comunes, J extras, K totales
+                var celda8 = row.Cell(8);
+                var layoutConClienteEn8 = !celda8.IsEmpty() && !celda8.TryGetValue<decimal>(out _);
+
+                var cliente = layoutConClienteEn8
+                    ? row.Cell(8).GetString().Trim()
+                    : row.Cell(11).GetString().Trim();
+
+                var horasComunes = layoutConClienteEn8 ? LeerDecimal(row.Cell(9)) : LeerDecimal(row.Cell(8));
+                var horasExtras = layoutConClienteEn8 ? LeerDecimal(row.Cell(10)) : LeerDecimal(row.Cell(9));
+                var horasEq = horasComunes + (horasExtras * 2m);
+
+                if (tipoObra is TipoObra.Construccion or TipoObra.IndustriaYComercio or TipoObra.NA)
+                    cliente = "Almirtaun";
+
                 var resultadoObra = await ObtenerOCrearObraAsync(numeroObra, nombreObra, tipoOriginal, cliente);
                 var obra = resultadoObra.entidad;
                 if (resultadoObra.creado)
@@ -226,10 +269,6 @@ public class ExcelImportService : IExcelImportService
                     creadosAutomaticos++;
                     incidencias++;
                 }
-
-                var horasComunes = LeerDecimal(row.Cell(8));
-                var horasExtras = LeerDecimal(row.Cell(9));
-                var horasEq = horasComunes + (horasExtras * 2m);
 
                 _db.HorasMensuales.Add(new HoraMensual
                 {
@@ -292,12 +331,30 @@ public class ExcelImportService : IExcelImportService
 
             foreach (var row in ws.RowsUsed().Skip(3))
             {
-                var numeroFuncionario = row.Cell(1).GetString().Trim();
+                // Layout real PAGOS:
+                // A ID, B Num Func, C Nombre, D Periodo, E Tipo Obra, F Cliente,
+                // G Adelanto, H Liquido, I Retencion, J TipoPago, K Total, L Obs
+                var numeroFuncionario = row.Cell(2).GetString().Trim();
                 if (string.IsNullOrWhiteSpace(numeroFuncionario))
                     continue;
 
-                var nombreFuncionario = row.Cell(2).GetString().Trim();
-                var tipoOriginal = row.Cell(4).GetString().Trim();
+                var nombreFuncionario = row.Cell(3).GetString().Trim();
+                var periodoFila = row.Cell(4).GetString().Trim();
+                var tipoOriginal = row.Cell(5).GetString().Trim();
+                var tipoObra = TipoObraParser.Parse(tipoOriginal);
+
+                if (!string.IsNullOrWhiteSpace(periodoFila) && !string.Equals(periodoFila, periodoCodigo, StringComparison.OrdinalIgnoreCase))
+                {
+                    _db.IncidenciasImportacion.Add(new IncidenciaImportacion
+                    {
+                        TipoArchivo = "PAGOS",
+                        PeriodoCodigo = periodoCodigo,
+                        FilaOrigen = row.RowNumber(),
+                        CodigoReferencia = numeroFuncionario,
+                        Descripcion = $"Período en fila ({periodoFila}) distinto al período activo ({periodoCodigo})."
+                    });
+                    incidencias++;
+                }
 
                 var resultadoFuncionario = await ResolverFuncionarioDesdePagoAsync(numeroFuncionario, nombreFuncionario);
                 var funcionario = resultadoFuncionario.entidad;
@@ -327,9 +384,10 @@ public class ExcelImportService : IExcelImportService
                     incidencias++;
                 }
 
-                var adelanto = LeerDecimal(row.Cell(6));
-                var liquido = LeerDecimal(row.Cell(7));
-                var retencion = LeerDecimal(row.Cell(8));
+                var adelanto = LeerDecimal(row.Cell(7));
+                var liquido = LeerDecimal(row.Cell(8));
+                var retencion = LeerDecimal(row.Cell(9));
+                var totalColumna = LeerDecimal(row.Cell(11));
 
                 if (adelanto < 0 || liquido < 0 || retencion < 0)
                 {
@@ -345,20 +403,70 @@ public class ExcelImportService : IExcelImportService
                     continue;
                 }
 
+                var totalCalculado = adelanto + liquido + retencion;
+                var totalGenerado = totalColumna > 0m ? totalColumna : totalCalculado;
+                if (totalColumna > 0m && totalColumna != totalCalculado)
+                {
+                    _db.IncidenciasImportacion.Add(new IncidenciaImportacion
+                    {
+                        TipoArchivo = "PAGOS",
+                        PeriodoCodigo = periodoCodigo,
+                        FilaOrigen = row.RowNumber(),
+                        CodigoReferencia = numeroFuncionario,
+                        Descripcion = $"Total columna K ({totalColumna:N2}) difiere de adelanto+liquido+retencion ({totalCalculado:N2}). Se usa columna K."
+                    });
+                    incidencias++;
+                }
+
+                var cliente = row.Cell(6).GetString().Trim();
+                if (tipoObra is TipoObra.Construccion or TipoObra.IndustriaYComercio or TipoObra.NA)
+                    cliente = "Almirtaun";
+
+                var tipoPagoRaw = row.Cell(10).GetString().Trim();
+                var tipoPago = tipoObra == TipoObra.NA ? "Efectivo" : "RedPagos";
+                if (!string.IsNullOrWhiteSpace(tipoPagoRaw))
+                {
+                    var normalized = tipoPagoRaw.Replace(" ", string.Empty, StringComparison.OrdinalIgnoreCase).ToUpperInvariant();
+                    if (tipoObra == TipoObra.NA && normalized != "EFECTIVO")
+                    {
+                        _db.IncidenciasImportacion.Add(new IncidenciaImportacion
+                        {
+                            TipoArchivo = "PAGOS",
+                            PeriodoCodigo = periodoCodigo,
+                            FilaOrigen = row.RowNumber(),
+                            CodigoReferencia = numeroFuncionario,
+                            Descripcion = $"Tipo de pago '{tipoPagoRaw}' ajustado a 'Efectivo' para tipo de obra N-A."
+                        });
+                        incidencias++;
+                    }
+                    else if (tipoObra != TipoObra.NA && normalized == "EFECTIVO")
+                    {
+                        _db.IncidenciasImportacion.Add(new IncidenciaImportacion
+                        {
+                            TipoArchivo = "PAGOS",
+                            PeriodoCodigo = periodoCodigo,
+                            FilaOrigen = row.RowNumber(),
+                            CodigoReferencia = numeroFuncionario,
+                            Descripcion = $"Tipo de pago '{tipoPagoRaw}' ajustado a 'RedPagos' (solo N-A puede ser efectivo)."
+                        });
+                        incidencias++;
+                    }
+                }
+
                 _db.PagosMensuales.Add(new PagoMensual
                 {
                     PeriodoId = periodoEntity.Id,
                     FuncionarioId = funcionario.Id,
                     NombreFuncionarioExcel = nombreFuncionario,
-                    TipoObra = TipoObraParser.Parse(tipoOriginal),
+                    TipoObra = tipoObra,
                     TipoObraOriginal = tipoOriginal,
-                    Cliente = row.Cell(5).GetString().Trim(),
+                    Cliente = cliente,
                     Adelanto = adelanto,
                     Liquido = liquido,
                     Retencion = retencion,
-                    TotalGenerado = adelanto + liquido + retencion,
-                    TipoPago = row.Cell(9).GetString().Trim(),
-                    Observacion = row.Cell(10).GetString().Trim()
+                    TotalGenerado = totalGenerado,
+                    TipoPago = tipoPago,
+                    Observacion = row.Cell(12).GetString().Trim()
                 });
 
                 procesados++;
