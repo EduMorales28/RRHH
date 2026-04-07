@@ -1,10 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Barraca.RRHH.App.Mac.Windows.InconsistenciasWindow"
-        Width="1180"
-        Height="720"
-        MinWidth="980"
-        MinHeight="600"
+  Width="1380"
+  Height="780"
+  MinWidth="1120"
+  MinHeight="660"
         WindowStartupLocation="CenterOwner"
         Title="Inconsistencias detectadas">
   <Grid Margin="14" RowDefinitions="Auto,*,Auto">
@@ -25,20 +25,20 @@
           <TextBlock DockPanel.Dock="Right" Text="Planilla editable de inconsistencias" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#334155"/>
         </DockPanel>
 
-        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto">
-          <Border BorderBrush="#E2E8F0" BorderThickness="1" Background="#F8FAFC" Padding="6">
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" Margin="0,0,0,8">
+          <Border BorderBrush="#D1E3F8" BorderThickness="1" Background="#EFF6FF" CornerRadius="8" Padding="10">
             <Grid ColumnDefinitions="180,70,180,80,70,70,220,170,110,170,120,90">
-              <TextBlock Grid.Column="0" Text="Inconsistencia" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="1" Text="Nro" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="2" Text="Funcionario" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="3" Text="Origen" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="4" Text="ID" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="5" Text="Fila" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="6" Text="Referencia" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="7" Text="Categoría/Tipo" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="8" Text="Monto/Horas" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="9" Text="Observación" FontWeight="SemiBold"/>
-              <TextBlock Grid.Column="10" Text="Func. destino" FontWeight="SemiBold"/>
+              <TextBlock Grid.Column="0" Text="Inconsistencia" FontWeight="SemiBold" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="1" Text="Nro" FontWeight="SemiBold" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="2" Text="Funcionario" FontWeight="SemiBold" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="3" Text="Origen" FontWeight="SemiBold" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="4" Text="ID" FontWeight="SemiBold" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="5" Text="Fila" FontWeight="SemiBold" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="6" Text="Referencia" FontWeight="SemiBold" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="7" Text="Categoría/Tipo" FontWeight="SemiBold" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="8" Text="Monto/Horas" FontWeight="SemiBold" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="9" Text="Observación" FontWeight="SemiBold" Margin="0,0,8,0"/>
+              <TextBlock Grid.Column="10" Text="Func. destino" FontWeight="SemiBold" Margin="0,0,8,0"/>
               <TextBlock Grid.Column="11" Text="Acción" FontWeight="SemiBold"/>
             </Grid>
           </Border>
@@ -48,20 +48,20 @@
           <ItemsControl ItemsSource="{Binding Detalles}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Border BorderBrush="#E2E8F0" BorderThickness="1" Padding="6" Margin="0,0,0,6" Background="{Binding RowBackground}">
+                <Border BorderBrush="#D9E2EC" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,10" Background="{Binding RowBackground}">
                   <Grid ColumnDefinitions="180,70,180,80,70,70,220,170,110,170,120,90">
-                    <TextBlock Grid.Column="0" Text="{Binding TipoError}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#B45309"/>
-                    <TextBlock Grid.Column="1" Text="{Binding NumeroFuncionario}" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="2" Text="{Binding NombreFuncionario}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                    <TextBlock Grid.Column="3" Text="{Binding Origen}" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="4" Text="{Binding RegistroId}" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="5" Text="{Binding FilaOrigen}" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="6" Text="{Binding Referencia}" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                    <TextBox Grid.Column="7" Text="{Binding CategoriaOTipo}"/>
-                    <TextBox Grid.Column="8" Text="{Binding MontoOHoras}"/>
-                    <TextBox Grid.Column="9" Text="{Binding Observacion}"/>
-                    <TextBox Grid.Column="10" Text="{Binding NumeroFuncionarioDestino}" Watermark="Opcional"/>
-                    <Button Grid.Column="11" Content="Guardar" Click="GuardarFila_Click"/>
+                    <TextBlock Grid.Column="0" Text="{Binding TipoError}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#B45309" Margin="0,0,8,0" TextWrapping="Wrap"/>
+                    <TextBlock Grid.Column="1" Text="{Binding NumeroFuncionario}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Column="2" Text="{Binding NombreFuncionario}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Column="3" Text="{Binding Origen}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Column="4" Text="{Binding RegistroId}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Column="5" Text="{Binding FilaOrigen}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Column="6" Text="{Binding Referencia}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="7" Text="{Binding CategoriaOTipo}" Height="32" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="8" Text="{Binding MontoOHoras}" Height="32" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="9" Text="{Binding Observacion}" Height="32" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="10" Text="{Binding NumeroFuncionarioDestino}" Watermark="Opcional" Height="32" Margin="0,0,8,0"/>
+                    <Button Grid.Column="11" Content="Guardar" Click="GuardarFila_Click" Height="32"/>
                   </Grid>
                 </Border>
               </DataTemplate>
