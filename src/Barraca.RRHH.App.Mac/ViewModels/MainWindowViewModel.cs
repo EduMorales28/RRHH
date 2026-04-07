@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
+using Barraca.RRHH.Application.DTOs;
 using Barraca.RRHH.Application.Interfaces;
 
 namespace Barraca.RRHH.App.Mac.ViewModels;
@@ -17,6 +18,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private readonly IDistribucionService _distribucionService;
     private readonly IReportService _reportService;
     private readonly IExcelImportService _excelImportService;
+    private readonly IConsistenciaService _consistenciaService;
 
     private string _periodo = DateTime.Now.ToString("yyyy-MM", CultureInfo.InvariantCulture);
     private string _status = "Listo";
@@ -37,13 +39,15 @@ public class MainWindowViewModel : INotifyPropertyChanged
         IPeriodoService periodoService,
         IDistribucionService distribucionService,
         IReportService reportService,
-        IExcelImportService excelImportService)
+        IExcelImportService excelImportService,
+        IConsistenciaService consistenciaService)
     {
         _dashboardService = dashboardService;
         _periodoService = periodoService;
         _distribucionService = distribucionService;
         _reportService = reportService;
         _excelImportService = excelImportService;
+        _consistenciaService = consistenciaService;
 
         CarpetaReportes = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -206,6 +210,8 @@ public class MainWindowViewModel : INotifyPropertyChanged
         }
     }
 
+    public Task CalcularDistribucionUiAsync() => CalcularDistribucionAsync();
+
     private async Task ImportarPlantillasAsync()
     {
         try
@@ -351,6 +357,20 @@ public class MainWindowViewModel : INotifyPropertyChanged
         {
             Status = $"Error generando reportes: {ex.Message}";
         }
+    }
+
+    public Task GenerarReportesUiAsync() => GenerarReportesAsync();
+
+    public async Task<IReadOnlyList<ConsistenciaFuncionarioErrorDto>> ValidarConsistenciaAsync()
+    {
+        var periodoNormalizado = NormalizarPeriodo(Periodo);
+        return await _consistenciaService.ValidarConsistenciaFuncionarioAsync(periodoNormalizado);
+    }
+
+    public async Task<IReadOnlyList<ConsistenciaDetalleRegistroDto>> ObtenerDetalleConsistenciaAsync(string tipo, int funcionarioId)
+    {
+        var periodoNormalizado = NormalizarPeriodo(Periodo);
+        return await _consistenciaService.ObtenerDetalleErrorAsync(periodoNormalizado, tipo, funcionarioId);
     }
 
     private static string NormalizarPeriodo(string input)

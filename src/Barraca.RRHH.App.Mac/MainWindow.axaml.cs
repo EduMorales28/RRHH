@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using Barraca.RRHH.App.Mac.ViewModels;
+using Barraca.RRHH.App.Mac.Windows;
 using System.Linq;
 
 namespace Barraca.RRHH.App.Mac;
@@ -60,5 +61,41 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainWindowViewModel vm)
             vm.RutaPagos = await SeleccionarArchivoExcelAsync() ?? vm.RutaPagos;
+    }
+
+    private async Task<bool> TieneInconsistenciasAsync(MainWindowViewModel vm, string operacion)
+    {
+        var errores = await vm.ValidarConsistenciaAsync();
+        if (errores.Count == 0)
+            return false;
+
+        vm.Status = $"No se puede {operacion}: hay inconsistencias. Revísalas y corrige antes de continuar.";
+
+        var ventana = new InconsistenciasWindow(vm.Periodo, vm.ValidarConsistenciaAsync, vm.ObtenerDetalleConsistenciaAsync);
+        await ventana.ShowDialog(this);
+
+        return true;
+    }
+
+    private async void CalcularDistribucionConValidacion_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        if (await TieneInconsistenciasAsync(vm, "calcular distribución"))
+            return;
+
+        await vm.CalcularDistribucionUiAsync();
+    }
+
+    private async void GenerarReportesConValidacion_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        if (await TieneInconsistenciasAsync(vm, "generar reportes"))
+            return;
+
+        await vm.GenerarReportesUiAsync();
     }
 }

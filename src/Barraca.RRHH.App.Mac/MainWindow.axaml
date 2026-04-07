@@ -23,8 +23,8 @@
           <TextBox Width="120" Text="{Binding Periodo}" Watermark="yyyy-MM" />
           <Button Content="Cambiar período" Command="{Binding CambiarPeriodoCommand}" />
           <Button Content="Refrescar" Command="{Binding RefrescarCommand}" />
-          <Button Content="Calcular distribucion" Command="{Binding CalcularDistribucionCommand}" />
-          <Button Content="Generar reportes" Command="{Binding GenerarReportesCommand}" />
+          <Button Content="Calcular distribucion" Click="CalcularDistribucionConValidacion_Click" />
+          <Button Content="Generar reportes" Click="GenerarReportesConValidacion_Click" />
         </StackPanel>
       </DockPanel>
     </Border>
@@ -65,8 +65,8 @@
           <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="10" Margin="0,0,0,14">
             <Button Content="Importar 4 plantillas" Command="{Binding ImportarPlantillasCommand}" Padding="14,8"/>
             <Button Content="Refrescar dashboard" Command="{Binding RefrescarCommand}" Padding="14,8"/>
-            <Button Content="Calcular distribución" Command="{Binding CalcularDistribucionCommand}" Padding="14,8"/>
-            <Button Content="Generar reportes del período" Command="{Binding GenerarReportesCommand}" Padding="14,8"/>
+            <Button Content="Calcular distribución" Click="CalcularDistribucionConValidacion_Click" Padding="14,8"/>
+            <Button Content="Generar reportes del período" Click="GenerarReportesConValidacion_Click" Padding="14,8"/>
           </StackPanel>
 
           <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,12" Background="White" CornerRadius="10" Padding="12">
@@ -117,7 +117,7 @@
       <TabItem Header="Reportes">
         <Grid Margin="16" RowDefinitions="Auto,*">
           <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,12">
-            <Button Content="Generar todos los PDFs" Command="{Binding GenerarReportesCommand}" Padding="16,8"/>
+            <Button Content="Generar todos los PDFs" Click="GenerarReportesConValidacion_Click" Padding="16,8"/>
             <Button Content="Refrescar" Command="{Binding RefrescarCommand}" Padding="16,8"/>
           </StackPanel>
           <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="14">

@@ -1,0 +1,76 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Barraca.RRHH.App.Mac.Windows.InconsistenciasWindow"
+        Width="1180"
+        Height="720"
+        MinWidth="980"
+        MinHeight="600"
+        WindowStartupLocation="CenterOwner"
+        Title="Inconsistencias detectadas">
+  <Grid Margin="14" RowDefinitions="Auto,*,Auto">
+    <Border Background="White" Padding="12" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1">
+      <StackPanel>
+        <TextBlock x:Name="TxtTitulo" FontWeight="Bold" FontSize="18" Foreground="#0F172A"/>
+        <TextBlock x:Name="TxtSubtitulo" Margin="0,4,0,0" Foreground="#334155" TextWrapping="Wrap"/>
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="1" Margin="0,12,0,12" ColumnDefinitions="2*,3*" ColumnSpacing="12">
+      <Border Grid.Column="0" Background="White" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" Padding="10">
+        <Grid RowDefinitions="Auto,*">
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+            <Button Content="Refrescar" Click="Refrescar_Click"/>
+          </StackPanel>
+
+          <ListBox Grid.Row="1" x:Name="LbErrores" SelectionChanged="Errores_SelectionChanged" ItemsSource="{Binding Errores}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Border Padding="8" Margin="0,0,0,6" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding Tipo}" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding NumeroFuncionario}" Foreground="#334155"/>
+                    <TextBlock Text="{Binding NombreFuncionario}"/>
+                    <TextBlock Text="{Binding Mensaje}" Foreground="#475569" TextWrapping="Wrap"/>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1" Background="White" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1" Padding="10">
+        <Grid RowDefinitions="Auto,*">
+          <TextBlock Text="Detalle de registros afectados" FontWeight="SemiBold" FontSize="15" Margin="0,0,0,8"/>
+          <ListBox Grid.Row="1" ItemsSource="{Binding Detalles}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Border Padding="8" Margin="0,0,0,6" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6">
+                  <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                    <TextBlock Grid.Column="0" Text="{Binding Origen}" FontWeight="SemiBold" Foreground="#0B7566"/>
+                    <StackPanel Grid.Column="1" Spacing="2">
+                      <TextBlock Text="{Binding Referencia}" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding CategoriaOTipo}" Foreground="#334155"/>
+                      <TextBlock Text="{Binding Observacion}" Foreground="#64748B" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                      <TextBlock Text="Fila" Foreground="#64748B" HorizontalAlignment="Right"/>
+                      <TextBlock Text="{Binding FilaOrigen}" HorizontalAlignment="Right"/>
+                      <TextBlock Text="Valor" Foreground="#64748B" HorizontalAlignment="Right" Margin="0,8,0,0"/>
+                      <TextBlock Text="{Binding MontoOHoras}" HorizontalAlignment="Right"/>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <DockPanel Grid.Row="2">
+      <TextBlock x:Name="TxtEstado" VerticalAlignment="Center" Foreground="#334155"/>
+      <Button DockPanel.Dock="Right" Content="Cerrar" Click="Cerrar_Click"/>
+    </DockPanel>
+  </Grid>
+</Window>
