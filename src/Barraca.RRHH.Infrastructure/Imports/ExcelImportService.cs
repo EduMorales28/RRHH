@@ -167,21 +167,9 @@ public class ExcelImportService : IExcelImportService
             var existentes = _db.HorasMensuales.Where(x => x.PeriodoId == periodoEntity.Id);
             _db.HorasMensuales.RemoveRange(existentes);
 
-            foreach (var row in ws.RowsUsed().Where(r => r.RowNumber() >= 2))
+            foreach (var row in FilasDatosHoras(ws))
             {
-                if (!row.Cell(1).TryGetValue<int>(out var idRegistro))
-                {
-                    _db.IncidenciasImportacion.Add(new IncidenciaImportacion
-                    {
-                        TipoArchivo = "HORAS",
-                        PeriodoCodigo = periodoCodigo,
-                        FilaOrigen = row.RowNumber(),
-                        CodigoReferencia = string.Empty,
-                        Descripcion = "Fila ignorada por id de registro invalido."
-                    });
-                    incidencias++;
-                    continue;
-                }
+                row.Cell(1).TryGetValue<int>(out var idRegistro);
 
                 var numeroFuncionario = row.Cell(2).GetString().Trim();
                 if (string.IsNullOrWhiteSpace(numeroFuncionario))
@@ -329,14 +317,11 @@ public class ExcelImportService : IExcelImportService
             var existentes = _db.PagosMensuales.Where(x => x.PeriodoId == periodoEntity.Id);
             _db.PagosMensuales.RemoveRange(existentes);
 
-            foreach (var row in ws.RowsUsed().Where(r => r.RowNumber() >= 2))
+            foreach (var row in FilasDatosPagos(ws))
             {
                 // Layout real PAGOS:
                 // A ID, B Num Func, C Nombre, D Periodo, E Tipo Obra, F Cliente,
                 // G Adelanto, H Liquido, I Retencion, J TipoPago, K Total, L Obs
-                if (!row.Cell(1).TryGetValue<int>(out _))
-                    continue;
-
                 var numeroFuncionario = row.Cell(2).GetString().Trim();
                 if (string.IsNullOrWhiteSpace(numeroFuncionario))
                     continue;
@@ -594,6 +579,38 @@ public class ExcelImportService : IExcelImportService
             return value;
 
         return decimal.TryParse(cell.GetString().Trim(), out value) ? value : 0m;
+    }
+
+    private static IEnumerable<IXLRow> FilasDatosHoras(IXLWorksheet ws)
+    {
+        foreach (var row in ws.RowsUsed())
+        {
+            // Fila de datos válida: ID numérico + número de funcionario informado.
+            if (!row.Cell(1).TryGetValue<int>(out _))
+                continue;
+
+            var numeroFuncionario = row.Cell(2).GetString().Trim();
+            if (string.IsNullOrWhiteSpace(numeroFuncionario))
+                continue;
+
+            yield return row;
+        }
+    }
+
+    private static IEnumerable<IXLRow> FilasDatosPagos(IXLWorksheet ws)
+    {
+        foreach (var row in ws.RowsUsed())
+        {
+            // Fila de datos válida: ID numérico + número de funcionario informado.
+            if (!row.Cell(1).TryGetValue<int>(out _))
+                continue;
+
+            var numeroFuncionario = row.Cell(2).GetString().Trim();
+            if (string.IsNullOrWhiteSpace(numeroFuncionario))
+                continue;
+
+            yield return row;
+        }
     }
 
     private static FileStream AbrirArchivoExcelParaLectura(string filePath)
