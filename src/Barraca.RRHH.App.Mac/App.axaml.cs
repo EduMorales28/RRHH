@@ -12,7 +12,7 @@ using Serilog;
 
 namespace Barraca.RRHH.App.Mac;
 
-public partial class App : Application
+public partial class App : Avalonia.Application
 {
     private ServiceProvider? _services;
 
