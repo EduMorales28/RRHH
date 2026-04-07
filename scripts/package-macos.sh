@@ -16,6 +16,10 @@ ICON_SOURCE="src/Barraca.RRHH.App.Mac/Assets/app-icon.png"
 ICONSET_DIR="${OUT_ROOT}/AppIcon.iconset"
 ICON_NAME="AppIcon.icns"
 ICON_PATH="${APP_DIR}/Contents/Resources/${ICON_NAME}"
+MACOS_CODESIGN_IDENTITY="${MACOS_CODESIGN_IDENTITY:-}"
+MACOS_NOTARY_APPLE_ID="${MACOS_NOTARY_APPLE_ID:-}"
+MACOS_NOTARY_PASSWORD="${MACOS_NOTARY_PASSWORD:-}"
+MACOS_NOTARY_TEAM_ID="${MACOS_NOTARY_TEAM_ID:-}"
 
 mkdir -p "${OUT_ROOT}"
 
@@ -77,20 +81,51 @@ PLIST
 
 chmod +x "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}" || true
 
-echo "[4/6] Firmando app (ad-hoc)"
-codesign --force --deep --sign - "${APP_DIR}"
+if [[ -n "${MACOS_CODESIGN_IDENTITY}" ]]; then
+  echo "[4/7] Firmando app (Developer ID): ${MACOS_CODESIGN_IDENTITY}"
+  codesign --force --deep --options runtime --timestamp --sign "${MACOS_CODESIGN_IDENTITY}" "${APP_DIR}"
+else
+  echo "[4/7] Firmando app (ad-hoc, no apto Gatekeeper)"
+  codesign --force --deep --sign - "${APP_DIR}"
+fi
 
-echo "[5/6] Creando ZIP"
+echo "[5/7] Creando ZIP"
 rm -f "${ZIP_PATH}"
 ditto -c -k --sequesterRsrc --keepParent "${APP_DIR}" "${ZIP_PATH}"
 
+if [[ -n "${MACOS_CODESIGN_IDENTITY}" && -n "${MACOS_NOTARY_APPLE_ID}" && -n "${MACOS_NOTARY_PASSWORD}" && -n "${MACOS_NOTARY_TEAM_ID}" ]]; then
+  echo "[6/8] Notarizando ZIP"
+  xcrun notarytool submit "${ZIP_PATH}" \
+    --apple-id "${MACOS_NOTARY_APPLE_ID}" \
+    --password "${MACOS_NOTARY_PASSWORD}" \
+    --team-id "${MACOS_NOTARY_TEAM_ID}" \
+    --wait
+
+  echo "[7/8] Staple ticket sobre app"
+  xcrun stapler staple "${APP_DIR}"
+
+  echo "[8/8] Reempacando ZIP con ticket"
+  rm -f "${ZIP_PATH}"
+  ditto -c -k --sequesterRsrc --keepParent "${APP_DIR}" "${ZIP_PATH}"
+elif [[ -n "${MACOS_CODESIGN_IDENTITY}" ]]; then
+  echo "[6/7] Firma activa, notarizacion omitida (faltan variables MACOS_NOTARY_*)"
+else
+  echo "[6/7] Sin firma Developer ID ni notarizacion: Gatekeeper mostrara advertencia"
+fi
+
 if [[ "${CREATE_DMG}" == "true" ]]; then
-  echo "[6/7] Creando DMG"
+  echo "[7/8] Creando DMG"
   rm -f "${DMG_PATH}"
   hdiutil create -volname "${APP_NAME}" -srcfolder "${APP_DIR}" -ov -format UDZO "${DMG_PATH}"
-  echo "[7/7] Resultado"
+
+  if [[ -n "${MACOS_CODESIGN_IDENTITY}" ]]; then
+    echo "[8/8] Firmando DMG"
+    codesign --force --timestamp --sign "${MACOS_CODESIGN_IDENTITY}" "${DMG_PATH}"
+  fi
+
+  echo "[final] Resultado"
 else
-  echo "[6/6] Resultado"
+  echo "[7/7] Resultado"
 fi
 
 echo "APP: ${APP_DIR}"
