@@ -56,14 +56,31 @@
       </TabItem>
 
       <TabItem Header="Operaciones">
-        <Grid Margin="16" RowDefinitions="Auto,*" ColumnDefinitions="2*,*">
+        <Grid Margin="16" RowDefinitions="Auto,Auto,*" ColumnDefinitions="2*,*">
           <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="10" Margin="0,0,0,14">
+            <Button Content="Importar 4 plantillas" Command="{Binding ImportarPlantillasCommand}" Padding="14,8"/>
             <Button Content="Refrescar dashboard" Command="{Binding RefrescarCommand}" Padding="14,8"/>
             <Button Content="Calcular distribución" Command="{Binding CalcularDistribucionCommand}" Padding="14,8"/>
             <Button Content="Generar reportes del período" Command="{Binding GenerarReportesCommand}" Padding="14,8"/>
           </StackPanel>
 
-          <Border Grid.Row="1" Grid.Column="0" Margin="0,0,8,0" Background="White" CornerRadius="10" Padding="14">
+          <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,12" Background="White" CornerRadius="10" Padding="12">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="180,*" >
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Plantilla Funcionarios" VerticalAlignment="Center"/>
+              <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding RutaFuncionarios}" Watermark="Ruta .xlsx (si queda vacío, se autodetecta en Downloads)"/>
+
+              <TextBlock Grid.Row="1" Grid.Column="0" Text="Plantilla Obras" VerticalAlignment="Center" Margin="0,8,0,0"/>
+              <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RutaObras}" Margin="0,8,0,0"/>
+
+              <TextBlock Grid.Row="2" Grid.Column="0" Text="Plantilla Horas" VerticalAlignment="Center" Margin="0,8,0,0"/>
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding RutaHoras}" Margin="0,8,0,0"/>
+
+              <TextBlock Grid.Row="3" Grid.Column="0" Text="Plantilla Pagos" VerticalAlignment="Center" Margin="0,8,0,0"/>
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding RutaPagos}" Margin="0,8,0,0"/>
+            </Grid>
+          </Border>
+
+          <Border Grid.Row="2" Grid.Column="0" Margin="0,0,8,0" Background="White" CornerRadius="10" Padding="14">
             <StackPanel Spacing="6">
               <TextBlock Text="Resumen operativo" FontSize="18" FontWeight="SemiBold"/>
               <TextBlock Text="Período" Foreground="#6B7280"/>
@@ -73,7 +90,7 @@
             </StackPanel>
           </Border>
 
-          <Border Grid.Row="1" Grid.Column="1" Margin="8,0,0,0" Background="White" CornerRadius="10" Padding="14">
+          <Border Grid.Row="2" Grid.Column="1" Margin="8,0,0,0" Background="White" CornerRadius="10" Padding="14">
             <StackPanel Spacing="8">
               <TextBlock Text="Destino de reportes" FontSize="18" FontWeight="SemiBold"/>
               <TextBox Text="{Binding CarpetaReportes}" IsReadOnly="True"/>

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
@@ -15,6 +16,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private readonly IPeriodoService _periodoService;
     private readonly IDistribucionService _distribucionService;
     private readonly IReportService _reportService;
+    private readonly IExcelImportService _excelImportService;
 
     private string _periodo = DateTime.Now.ToString("yyyy-MM", CultureInfo.InvariantCulture);
     private string _status = "Listo";
@@ -25,17 +27,23 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private int _funcionariosActivos;
     private int _obrasActivas;
     private int _lineasDistribuidas;
+    private string _rutaFuncionarios = string.Empty;
+    private string _rutaObras = string.Empty;
+    private string _rutaHoras = string.Empty;
+    private string _rutaPagos = string.Empty;
 
     public MainWindowViewModel(
         IDashboardService dashboardService,
         IPeriodoService periodoService,
         IDistribucionService distribucionService,
-        IReportService reportService)
+        IReportService reportService,
+        IExcelImportService excelImportService)
     {
         _dashboardService = dashboardService;
         _periodoService = periodoService;
         _distribucionService = distribucionService;
         _reportService = reportService;
+        _excelImportService = excelImportService;
 
         CarpetaReportes = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -44,6 +52,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
 
         RefrescarCommand = new AsyncCommand(RefrescarAsync);
     CambiarPeriodoCommand = new AsyncCommand(RefrescarAsync);
+        ImportarPlantillasCommand = new AsyncCommand(ImportarPlantillasAsync);
         CalcularDistribucionCommand = new AsyncCommand(CalcularDistribucionAsync);
         GenerarReportesCommand = new AsyncCommand(GenerarReportesAsync);
 
@@ -113,8 +122,33 @@ public class MainWindowViewModel : INotifyPropertyChanged
 
     public ICommand RefrescarCommand { get; }
     public ICommand CambiarPeriodoCommand { get; }
+    public ICommand ImportarPlantillasCommand { get; }
     public ICommand CalcularDistribucionCommand { get; }
     public ICommand GenerarReportesCommand { get; }
+
+    public string RutaFuncionarios
+    {
+        get => _rutaFuncionarios;
+        set => SetField(ref _rutaFuncionarios, value);
+    }
+
+    public string RutaObras
+    {
+        get => _rutaObras;
+        set => SetField(ref _rutaObras, value);
+    }
+
+    public string RutaHoras
+    {
+        get => _rutaHoras;
+        set => SetField(ref _rutaHoras, value);
+    }
+
+    public string RutaPagos
+    {
+        get => _rutaPagos;
+        set => SetField(ref _rutaPagos, value);
+    }
 
     private async Task RefrescarAsync()
     {
@@ -162,6 +196,57 @@ public class MainWindowViewModel : INotifyPropertyChanged
         {
             Status = $"Error calculando distribución: {ex.Message}";
         }
+    }
+
+    private async Task ImportarPlantillasAsync()
+    {
+        try
+        {
+            var periodoNormalizado = NormalizarPeriodo(Periodo);
+
+            var f = ResolverRutaPlantilla(RutaFuncionarios, new[] { "FUNCIONARIO", "FUNCIONARIOS" });
+            var o = ResolverRutaPlantilla(RutaObras, new[] { "OBRA", "OBRAS" });
+            var h = ResolverRutaPlantilla(RutaHoras, new[] { "HORAS" });
+            var p = ResolverRutaPlantilla(RutaPagos, new[] { "PAGO", "PAGOS" });
+
+            RutaFuncionarios = f;
+            RutaObras = o;
+            RutaHoras = h;
+            RutaPagos = p;
+
+            await _excelImportService.ImportarFuncionariosAsync(f, "admin");
+            await _excelImportService.ImportarObrasAsync(o, "admin");
+            await _excelImportService.ImportarHorasAsync(h, periodoNormalizado, "admin");
+            await _excelImportService.ImportarPagosAsync(p, periodoNormalizado, "admin");
+
+            await RefrescarAsync();
+            Status = "Plantillas importadas correctamente (Funcionarios, Obras, Horas, Pagos).";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Error importando plantillas: {ex.Message}";
+        }
+    }
+
+    private static string ResolverRutaPlantilla(string rutaIngresada, string[] pistas)
+    {
+        if (!string.IsNullOrWhiteSpace(rutaIngresada) && File.Exists(rutaIngresada))
+            return rutaIngresada;
+
+        var downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        if (!Directory.Exists(downloads))
+            throw new InvalidOperationException("No existe la carpeta Downloads para autodetección de plantillas.");
+
+        var files = Directory.EnumerateFiles(downloads, "*.xlsx", SearchOption.TopDirectoryOnly)
+            .Where(x => pistas.Any(p => Path.GetFileName(x).ToUpperInvariant().Contains(p)))
+            .Select(x => new FileInfo(x))
+            .OrderByDescending(x => x.LastWriteTimeUtc)
+            .ToList();
+
+        if (files.Count == 0)
+            throw new InvalidOperationException($"No se encontró plantilla Excel para: {string.Join(", ", pistas)}.");
+
+        return files[0].FullName;
     }
 
     private async Task GenerarReportesAsync()
