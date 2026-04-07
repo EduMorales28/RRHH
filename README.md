@@ -51,8 +51,9 @@ Se agregó el archivo `.vscode/extensions.json` con recomendaciones para trabaja
 Al abrir la carpeta en VS Code te va a ofrecer instalarlas automáticamente.
 
 ## App para macOS
-Se agregó el proyecto `Barraca.RRHH.App.Mac` que reutiliza servicios de Application/Infrastructure para:
-- refrescar dashboard por período
+Se agregó el proyecto `Barraca.RRHH.App.Mac` como app CLI (sin Avalonia) para máxima estabilidad en CI y macOS.
+Esta app reutiliza servicios de Application/Infrastructure para:
+- mostrar resumen dashboard por período
 - recalcular distribución
 - generar reportes PDF
 
@@ -63,6 +64,9 @@ Se agregó el proyecto `Barraca.RRHH.App.Mac` que reutiliza servicios de Applica
 ### Ejecutar en desarrollo
 1. `dotnet restore Barraca.RRHH.sln`
 2. `dotnet run --project src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj`
+
+Opcional: pasar período como argumento:
+- `dotnet run --project src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj -- 2026-04`
 
 ### Publicar app macOS
 1. Apple Silicon:
