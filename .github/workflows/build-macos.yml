@@ -28,12 +28,16 @@ jobs:
           dotnet --list-sdks
 
       - name: Setup code signing keychain (optional)
-        if: secrets.MACOS_CERTIFICATE_P12_BASE64 != '' && secrets.MACOS_CERTIFICATE_PASSWORD != ''
         env:
           MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
         run: |
+          if [ -z "$MACOS_CERTIFICATE_P12_BASE64" ] || [ -z "$MACOS_CERTIFICATE_PASSWORD" ]; then
+            echo "No hay certificado configurado en secrets; se omite keychain de firma."
+            exit 0
+          fi
+
           KEYCHAIN_NAME="build-signing.keychain-db"
           CERT_PATH="$RUNNER_TEMP/macos-signing-cert.p12"
           if [ -z "$KEYCHAIN_PASSWORD" ]; then
