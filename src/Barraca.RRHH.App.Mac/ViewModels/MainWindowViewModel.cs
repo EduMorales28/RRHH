@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows.Input;
 using Barraca.RRHH.Application.DTOs;
@@ -34,6 +35,7 @@ public class MainWindowViewModel : INotifyPropertyChanged
     private string _rutaHoras = string.Empty;
     private string _rutaPagos = string.Empty;
     private string _carpetaReportes = string.Empty;
+    private readonly string _uiSettingsPath;
 
     public MainWindowViewModel(
         IDashboardService dashboardService,
@@ -50,10 +52,16 @@ public class MainWindowViewModel : INotifyPropertyChanged
         _excelImportService = excelImportService;
         _consistenciaService = consistenciaService;
 
-        _carpetaReportes = Path.Combine(
+        var userDataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "BarracaRRHH",
+            "BarracaRRHH");
+
+        _carpetaReportes = Path.Combine(
+            userDataRoot,
             "Reportes");
+        _uiSettingsPath = Path.Combine(userDataRoot, "ui-settings.json");
+
+        CargarPreferenciasUi();
         Directory.CreateDirectory(_carpetaReportes);
 
         RefrescarCommand = new AsyncCommand(RefrescarAsync);
@@ -89,7 +97,12 @@ public class MainWindowViewModel : INotifyPropertyChanged
         set
         {
             var nueva = string.IsNullOrWhiteSpace(value) ? _carpetaReportes : value.Trim();
+            if (_carpetaReportes == nueva)
+                return;
+
             SetField(ref _carpetaReportes, nueva);
+            Directory.CreateDirectory(_carpetaReportes);
+            GuardarPreferenciasUi();
         }
     }
 
@@ -394,6 +407,53 @@ public class MainWindowViewModel : INotifyPropertyChanged
             throw new InvalidOperationException("El mes del período debe estar entre 01 y 12.");
 
         return value;
+    }
+
+    private void CargarPreferenciasUi()
+    {
+        try
+        {
+            if (!File.Exists(_uiSettingsPath))
+                return;
+
+            var json = File.ReadAllText(_uiSettingsPath);
+            var settings = JsonSerializer.Deserialize<UiSettings>(json);
+            if (!string.IsNullOrWhiteSpace(settings?.CarpetaReportes))
+                _carpetaReportes = settings.CarpetaReportes.Trim();
+        }
+        catch
+        {
+            // Si falla la lectura, se conserva la carpeta por defecto.
+        }
+    }
+
+    private void GuardarPreferenciasUi()
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(_uiSettingsPath);
+            if (!string.IsNullOrWhiteSpace(dir))
+                Directory.CreateDirectory(dir);
+
+            var payload = new UiSettings
+            {
+                CarpetaReportes = _carpetaReportes
+            };
+
+            File.WriteAllText(_uiSettingsPath, JsonSerializer.Serialize(payload, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            }));
+        }
+        catch
+        {
+            // No bloquea la operación principal si falla persistir preferencia local.
+        }
+    }
+
+    private sealed class UiSettings
+    {
+        public string CarpetaReportes { get; set; } = string.Empty;
     }
 
     private void SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
