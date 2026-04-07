@@ -51,7 +51,7 @@ Se agregó el archivo `.vscode/extensions.json` con recomendaciones para trabaja
 Al abrir la carpeta en VS Code te va a ofrecer instalarlas automáticamente.
 
 ## App para macOS
-Se agregó el proyecto `Barraca.RRHH.App.Mac` como app CLI (sin Avalonia) para máxima estabilidad en CI y macOS.
+Se agregó el proyecto `Barraca.RRHH.App.Mac` como app de escritorio para macOS (GUI).
 Esta app reutiliza servicios de Application/Infrastructure para:
 - mostrar resumen dashboard por período
 - recalcular distribución
@@ -65,11 +65,8 @@ Esta app reutiliza servicios de Application/Infrastructure para:
 	- `ConnectionStrings:DefaultConnection` a tu cadena TCP válida.
 
 ### Ejecutar en desarrollo
-1. `dotnet restore Barraca.RRHH.sln`
+1. `dotnet restore src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj`
 2. `dotnet run --project src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj`
-
-Opcional: pasar período como argumento:
-- `dotnet run --project src/Barraca.RRHH.App.Mac/Barraca.RRHH.App.Mac.csproj -- 2026-04`
 
 ### Publicar app macOS
 1. Apple Silicon:
@@ -101,7 +98,7 @@ Cuando el archivo se descarga desde Internet, macOS puede bloquearlo por cuarent
 3. Abrir con clic derecho > Open la primera vez.
 
 ### Comportamiento de la app macOS
-La app macOS es CLI empaquetada en `.app`; al abrirla desde Finder, el launcher abre una ventana de Terminal con el menú operativo. No es una ventana gráfica nativa.
+La app macOS se abre como aplicación gráfica normal (`.app`) desde Finder.
 
 ## Nota de red detectada en este equipo
 En este Mac hubo errores SSL al descargar el SDK desde `builds.dotnet.microsoft.com`, por eso no fue posible compilar localmente durante esta sesión. La alternativa inmediata es usar el workflow de GitHub Actions que ya quedó agregado.
