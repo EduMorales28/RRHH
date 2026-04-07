@@ -210,7 +210,8 @@ public class ConsistenciaService : IConsistenciaService
             .Select(x => new
             {
                 x.FuncionarioId,
-                Tipo = x.Obra != null ? x.Obra.TipoObraOriginal : string.Empty
+                Tipo = x.Obra != null ? x.Obra.TipoObraOriginal : string.Empty,
+                x.HorasEquivalentes
             })
             .ToListAsync();
 
@@ -219,11 +220,15 @@ public class ConsistenciaService : IConsistenciaService
             .Select(x => new
             {
                 x.FuncionarioId,
-                Tipo = x.TipoObraOriginal
+                Tipo = x.TipoObraOriginal,
+                x.Adelanto,
+                x.Liquido,
+                x.Retencion
             })
             .ToListAsync();
 
         var horasTiposPorFuncionario = horasTiposRaw
+            .Where(x => x.HorasEquivalentes > 0m)
             .GroupBy(x => x.FuncionarioId)
             .ToDictionary(
                 g => g.Key,
@@ -231,6 +236,7 @@ public class ConsistenciaService : IConsistenciaService
                     .ToHashSet());
 
         var pagosTiposPorFuncionario = pagosTiposRaw
+            .Where(x => (x.Adelanto + x.Liquido + x.Retencion) > 0m)
             .GroupBy(x => x.FuncionarioId)
             .ToDictionary(
                 g => g.Key,

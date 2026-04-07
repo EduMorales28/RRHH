@@ -111,13 +111,15 @@ public partial class MainWindow : Window
             return false;
 
         var erroresBloqueantes = errores
-            .Where(x => !string.Equals(x.Tipo, "HORAS_SIN_PAGOS", StringComparison.OrdinalIgnoreCase))
+            .Where(x =>
+                !string.Equals(x.Tipo, "HORAS_SIN_PAGOS", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(x.Tipo, "TIPO_OBRA_DESALINEADO", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         if (erroresBloqueantes.Count == 0)
         {
             vm.Status =
-                $"Advertencia: se detectaron {errores.Count} caso(s) de HORAS_SIN_PAGOS. " +
+                $"Advertencia: se detectaron {errores.Count} caso(s) no bloqueantes (HORAS_SIN_PAGOS/TIPO_OBRA_DESALINEADO). " +
                 $"Se continúa con {operacion} porque no afecta el cierre contable de distribución.";
             return false;
         }
