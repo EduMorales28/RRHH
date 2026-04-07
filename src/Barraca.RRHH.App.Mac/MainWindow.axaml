@@ -7,14 +7,19 @@
         MinHeight="680"
         Title="Barraca RRHH v3 - macOS">
   <Grid RowDefinitions="Auto,*,Auto" Background="#F3F4F6">
-    <Border Grid.Row="0" Background="#16324F" Padding="16">
+    <Border Grid.Row="0" Background="#0B7566" Padding="14">
       <DockPanel LastChildFill="False">
         <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-          <TextBlock Text="Barraca RRHH v3" Foreground="White" FontSize="26" FontWeight="Bold" VerticalAlignment="Center" />
-          <TextBlock Text="  |  RRHH + Obras + Costos + Reportes PDF" Foreground="#D9E5F3" Margin="12,4,0,0" />
+          <Border Width="64" Height="64" Background="White" CornerRadius="8" Padding="4" Margin="0,0,10,0">
+            <Image Source="avares://Barraca.RRHH.App.Mac/Assets/logo-morales.jpeg" Stretch="Uniform" />
+          </Border>
+          <StackPanel>
+            <TextBlock Text="Barraca RRHH v3" Foreground="{DynamicResource BrandTextOnDarkBrush}" FontSize="26" FontWeight="Bold" VerticalAlignment="Center" />
+            <TextBlock Text="RRHH + Obras + Costos + Reportes PDF" Foreground="#E4EEF3" Margin="0,2,0,0" />
+          </StackPanel>
         </StackPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
-          <TextBlock Text="Período:" Foreground="White" VerticalAlignment="Center" />
+          <TextBlock Text="Período:" Foreground="{DynamicResource BrandTextOnDarkBrush}" VerticalAlignment="Center" />
           <TextBox Width="120" Text="{Binding Periodo}" Watermark="yyyy-MM" />
           <Button Content="Cambiar período" Command="{Binding CambiarPeriodoCommand}" />
           <Button Content="Refrescar" Command="{Binding RefrescarCommand}" />
