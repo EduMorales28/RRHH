@@ -24,6 +24,25 @@ rm -rf "${APP_DIR}"
 mkdir -p "${APP_DIR}/Contents/MacOS" "${APP_DIR}/Contents/Resources"
 cp -R "${PUBLISH_DIR}/." "${APP_DIR}/Contents/MacOS/"
 
+if [[ -f "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}" ]]; then
+  mv "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}" "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}.bin"
+fi
+
+cat > "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}" <<'LAUNCHER'
+#!/usr/bin/env bash
+set -euo pipefail
+
+DIR="$(cd "$(dirname "$0")" && pwd)"
+BIN="${DIR}/Barraca.RRHH.App.Mac.bin"
+
+osascript <<APPLESCRIPT
+tell application "Terminal"
+  activate
+  do script "cd \"${DIR}\"; \"${BIN}\""
+end tell
+APPLESCRIPT
+LAUNCHER
+
 cat > "${APP_DIR}/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -50,6 +69,7 @@ cat > "${APP_DIR}/Contents/Info.plist" <<PLIST
 PLIST
 
 chmod +x "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}" || true
+chmod +x "${APP_DIR}/Contents/MacOS/${EXECUTABLE_NAME}.bin" || true
 
 echo "[4/6] Firmando app (ad-hoc)"
 codesign --force --deep --sign - "${APP_DIR}"

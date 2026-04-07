@@ -97,6 +97,9 @@ Cuando el archivo se descarga desde Internet, macOS puede bloquearlo por cuarent
 	- `xattr -dr com.apple.quarantine "ruta/Barraca RRHH.app"`
 3. Abrir con clic derecho > Open la primera vez.
 
+### Comportamiento de la app macOS
+La app macOS es CLI empaquetada en `.app`; al abrirla desde Finder, el launcher abre una ventana de Terminal con el menú operativo. No es una ventana gráfica nativa.
+
 ## Nota de red detectada en este equipo
 En este Mac hubo errores SSL al descargar el SDK desde `builds.dotnet.microsoft.com`, por eso no fue posible compilar localmente durante esta sesión. La alternativa inmediata es usar el workflow de GitHub Actions que ya quedó agregado.
 

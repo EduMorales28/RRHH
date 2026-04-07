@@ -58,45 +58,51 @@ internal sealed class Program
 
             Console.WriteLine("Barraca RRHH macOS (CLI)");
             Console.WriteLine($"Periodo activo: {periodo}");
-            Console.WriteLine();
-
-            var dashboard = await dashboardService.ObtenerResumenAsync(periodo);
-            Console.WriteLine($"Total generado: {dashboard.TotalGenerado:N2}");
-            Console.WriteLine($"Adelantos: {dashboard.Adelantos:N2}");
-            Console.WriteLine($"Liquidos: {dashboard.Liquidos:N2}");
-            Console.WriteLine($"Retenciones: {dashboard.Retenciones:N2}");
-            Console.WriteLine($"Funcionarios activos: {dashboard.FuncionariosActivos}");
-            Console.WriteLine($"Obras activas: {dashboard.ObrasActivas}");
-            Console.WriteLine($"Lineas distribuidas: {dashboard.LineasDistribuidas}");
-            Console.WriteLine();
-
-            Console.WriteLine("Acciones:");
-            Console.WriteLine("1) Recalcular distribucion");
-            Console.WriteLine("2) Generar reportes PDF");
-            Console.WriteLine("3) Salir");
-            Console.Write("Selecciona opcion: ");
-
-            var option = Console.ReadLine()?.Trim();
-            if (option == "1")
+            while (true)
             {
-                var lineas = await distribucionService.CalcularDistribucionAsync(periodo, "admin", true);
-                Console.WriteLine($"Distribucion recalculada: {lineas.Count} lineas");
-            }
-            else if (option == "2")
-            {
-                var files = new[]
+                Console.WriteLine();
+                var dashboard = await dashboardService.ObtenerResumenAsync(periodo);
+                Console.WriteLine($"Total generado: {dashboard.TotalGenerado:N2}");
+                Console.WriteLine($"Adelantos: {dashboard.Adelantos:N2}");
+                Console.WriteLine($"Liquidos: {dashboard.Liquidos:N2}");
+                Console.WriteLine($"Retenciones: {dashboard.Retenciones:N2}");
+                Console.WriteLine($"Funcionarios activos: {dashboard.FuncionariosActivos}");
+                Console.WriteLine($"Obras activas: {dashboard.ObrasActivas}");
+                Console.WriteLine($"Lineas distribuidas: {dashboard.LineasDistribuidas}");
+                Console.WriteLine();
+
+                Console.WriteLine("Acciones:");
+                Console.WriteLine("1) Recalcular distribucion");
+                Console.WriteLine("2) Generar reportes PDF");
+                Console.WriteLine("3) Salir");
+                Console.Write("Selecciona opcion: ");
+
+                var option = Console.ReadLine()?.Trim();
+                if (option == "1")
                 {
-                    await reportService.GenerarAdelantosAsync(periodo, reportesDir, "admin"),
-                    await reportService.GenerarDistribucionObrasAsync(periodo, reportesDir, "admin"),
-                    await reportService.GenerarRedPagosAsync(periodo, reportesDir, "admin"),
-                    await reportService.GenerarNAAsync(periodo, reportesDir, "admin"),
-                    await reportService.GenerarRetencionesAsync(periodo, reportesDir, "admin"),
-                    await reportService.GenerarConsolidadoGeneralAsync(periodo, reportesDir, "admin")
-                };
+                    var lineas = await distribucionService.CalcularDistribucionAsync(periodo, "admin", true);
+                    Console.WriteLine($"Distribucion recalculada: {lineas.Count} lineas");
+                }
+                else if (option == "2")
+                {
+                    var files = new[]
+                    {
+                        await reportService.GenerarAdelantosAsync(periodo, reportesDir, "admin"),
+                        await reportService.GenerarDistribucionObrasAsync(periodo, reportesDir, "admin"),
+                        await reportService.GenerarRedPagosAsync(periodo, reportesDir, "admin"),
+                        await reportService.GenerarNAAsync(periodo, reportesDir, "admin"),
+                        await reportService.GenerarRetencionesAsync(periodo, reportesDir, "admin"),
+                        await reportService.GenerarConsolidadoGeneralAsync(periodo, reportesDir, "admin")
+                    };
 
-                Console.WriteLine("Reportes generados:");
-                foreach (var f in files)
-                    Console.WriteLine($"- {f}");
+                    Console.WriteLine("Reportes generados:");
+                    foreach (var f in files)
+                        Console.WriteLine($"- {f}");
+                }
+                else if (option == "3")
+                {
+                    break;
+                }
             }
 
             Log.CloseAndFlush();
@@ -105,6 +111,9 @@ internal sealed class Program
         catch (Exception ex)
         {
             Console.Error.WriteLine($"Error: {ex.Message}");
+            Console.Error.WriteLine(ex.ToString());
+            Console.Error.WriteLine("Presiona Enter para cerrar...");
+            Console.ReadLine();
             Log.CloseAndFlush();
             return 1;
         }
