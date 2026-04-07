@@ -10,6 +10,7 @@ namespace Barraca.RRHH.Infrastructure.Services;
 public class DistribucionService : IDistribucionService
 {
     private readonly BarracaDbContext _db;
+    private const decimal ToleranciaIntegridad = 0.000001m;
 
     public DistribucionService(BarracaDbContext db)
     {
@@ -159,7 +160,7 @@ public class DistribucionService : IDistribucionService
                 x.TotalDistribuido,
                 Diferencia = x.TotalFuncionario - x.TotalDistribuido
             })
-            .Where(x => x.Diferencia != 0m)
+            .Where(x => Math.Abs(x.Diferencia) > ToleranciaIntegridad)
             .ToList();
 
         if (diferenciasFuncionario.Count > 0)
@@ -195,10 +196,12 @@ public class DistribucionService : IDistribucionService
         var totalConsolidado = controlPorFuncionario.Sum(x => x.TotalFuncionario);
         var totalDistribucionRaw = lineasConsolidadas.Sum(x => x.Monto);
 
-        if (totalConsolidado != totalDistribucionRaw)
+        var diferenciaRaw = totalConsolidado - totalDistribucionRaw;
+        if (Math.Abs(diferenciaRaw) > ToleranciaIntegridad)
         {
             throw new InvalidOperationException(
-                $"Error de integridad: total consolidado ({totalConsolidado:N6}) distinto a total distribuido crudo ({totalDistribucionRaw:N6}).");
+            $"Error de integridad: total consolidado ({totalConsolidado:N6}) distinto a total distribuido crudo ({totalDistribucionRaw:N6}). " +
+            $"Diferencia técnica={diferenciaRaw:G29}.");
         }
 
         var lineasFinales = lineasConsolidadas
