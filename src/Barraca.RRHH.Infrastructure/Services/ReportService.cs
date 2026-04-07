@@ -370,7 +370,7 @@ public class ReportService : IReportService
                         col.Item().PaddingTop(10).Element(c =>
                             c.Border(1).BorderColor(tipoColor).Padding(10).Column(tipoCol =>
                             {
-                                tipoCol.Item().Element(x => PdfReportStyle.ColorBand(x, $"{tipoIndex}. TIPO DE OBRA: {tipo.Key}", tipoColor));
+                                tipoCol.Item().Element(x => PdfReportStyle.ColorBand(x, $"TIPO: {tipo.Key.ToString().ToUpperInvariant()}", tipoColor));
 
                                 var obraIndex = 1;
                                 foreach (var obraGroup in groupedObra)
@@ -423,10 +423,43 @@ public class ReportService : IReportService
                                                         totalGeneral += line.MontoLinea;
                                                         index++;
                                                     }
+
+                                                    var totalObraJornales = obraGroup.Sum(y => y.Jornales);
+                                                    var totalObraHoras = obraGroup.Sum(y => y.HorasLinea);
+                                                    var totalObraMonto = obraGroup.Sum(y => y.MontoLinea);
+                                                    var etiquetaObra = $"TOTAL OBRA: {obra?.NumeroObra} - {obra?.Nombre}";
+
+                                                    t.Cell().ColumnSpan(3).Element(cell =>
+                                                        PdfReportStyle.TableCell(cell)
+                                                            .Background(Colors.Green.Lighten4)
+                                                            .Text(etiquetaObra)
+                                                            .Bold());
+                                                    t.Cell().Element(cell =>
+                                                        PdfReportStyle.TableCell(cell)
+                                                            .Background(Colors.Green.Lighten4)
+                                                            .AlignRight()
+                                                            .Text(totalObraJornales.ToString("N2"))
+                                                            .Bold());
+                                                    t.Cell().Element(cell =>
+                                                        PdfReportStyle.TableCell(cell)
+                                                            .Background(Colors.Green.Lighten4)
+                                                            .AlignRight()
+                                                            .Text(totalObraHoras.ToString("N2"))
+                                                            .Bold());
+                                                    t.Cell().Element(cell =>
+                                                        PdfReportStyle.TableCell(cell)
+                                                            .Background(Colors.Green.Lighten4)
+                                                            .AlignRight()
+                                                            .Text("-")
+                                                            .Bold());
+                                                    t.Cell().Element(cell =>
+                                                        PdfReportStyle.TableCell(cell)
+                                                            .Background(Colors.Green.Lighten4)
+                                                            .AlignRight()
+                                                            .Text(totalObraMonto.ToString("N2"))
+                                                            .Bold());
                                                 });
                                             });
-
-                                            obraCol.Item().PaddingTop(6).Element(x => PdfReportStyle.GreenTotalBox(x, "TOTAL OBRA:", obraGroup.Sum(y => y.MontoLinea).ToString("N2")));
                                         }));
 
                                     obraIndex++;

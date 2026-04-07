@@ -4,6 +4,7 @@ using Barraca.RRHH.Domain.Entities;
 using Barraca.RRHH.Domain.Enums;
 using Barraca.RRHH.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace Barraca.RRHH.Infrastructure.Services;
 
@@ -138,7 +139,7 @@ public class DistribucionService : IDistribucionService
                     ObraId = obra.Id,
                     NumeroObra = obra.NumeroObra,
                     NombreObra = obra.Nombre,
-                    Categoria = reg.Categoria,
+                    Categoria = NormalizarCategoria(reg.Categoria),
                     Horas = reg.HorasEquivalentes,
                     Monto = montoRegistro
                 });
@@ -190,7 +191,7 @@ public class DistribucionService : IDistribucionService
             })
             .OrderBy(x => x.TipoObra)
             .ThenBy(x => x.NumeroObra)
-            .ThenBy(x => x.Categoria)
+            .ThenBy(x => x.Categoria, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
         var totalConsolidado = controlPorFuncionario.Sum(x => x.TotalFuncionario);
@@ -351,5 +352,18 @@ public class DistribucionService : IDistribucionService
         public int FuncionarioId { get; set; }
         public decimal TotalFuncionario { get; set; }
         public decimal TotalDistribuido { get; set; }
+    }
+
+    private static string NormalizarCategoria(string? categoria)
+    {
+        if (string.IsNullOrWhiteSpace(categoria))
+            return "Sin categoria";
+
+        var tokens = categoria
+            .Trim()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var compacta = string.Join(' ', tokens).ToLowerInvariant();
+        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(compacta);
     }
 }
