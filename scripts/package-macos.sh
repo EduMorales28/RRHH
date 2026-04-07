@@ -14,7 +14,7 @@ DMG_PATH="${OUT_ROOT}/${APP_NAME// /-}-${RID}.dmg"
 mkdir -p "${OUT_ROOT}"
 
 echo "[1/4] Publicando ${PROJECT} para ${RID}"
-dotnet publish "${PROJECT}" -c "${CONFIGURATION}" -r "${RID}" --self-contained true /p:PublishSingleFile=true -o "${PUBLISH_DIR}"
+dotnet publish "${PROJECT}" --no-restore -c "${CONFIGURATION}" -r "${RID}" --self-contained true /p:PublishSingleFile=true -o "${PUBLISH_DIR}"
 
 echo "[2/4] Armando bundle .app"
 rm -rf "${APP_DIR}"

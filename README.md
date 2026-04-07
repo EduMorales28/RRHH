@@ -19,6 +19,9 @@ Versión funcional ampliada del sistema de gestión de RRHH, obras, horas, pagos
 - QuestPDF
 - Serilog
 
+## SDK fijado
+El repositorio incluye `global.json` para fijar SDK de .NET 8 en CI y desarrollo local, evitando builds con SDK 10 por defecto en runners.
+
 ## Estructura
 - `src/Barraca.RRHH.Domain`: entidades y enums
 - `src/Barraca.RRHH.Application`: interfaces y DTOs
