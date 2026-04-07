@@ -112,7 +112,7 @@ public partial class MainWindow : Window
 
         vm.Status = $"No se puede {operacion}: hay inconsistencias. Revísalas y corrige antes de continuar.";
 
-        var ventana = new InconsistenciasWindow(vm.Periodo, vm.ValidarConsistenciaAsync, vm.ObtenerDetalleConsistenciaAsync);
+        var ventana = new InconsistenciasWindow(vm.Periodo, vm.ValidarConsistenciaAsync, vm.ObtenerDetalleConsistenciaAsync, vm.GuardarDetalleConsistenciaAsync);
         await ventana.ShowDialog(this);
 
         return true;

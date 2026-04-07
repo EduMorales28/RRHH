@@ -473,4 +473,74 @@ public class ConsistenciaService : IConsistenciaService
 
         await _db.SaveChangesAsync();
     }
+
+    public async Task GuardarDetalleErrorAsync(string periodo, ConsistenciaDetalleRegistroDto detalle, string usuario)
+    {
+        var periodoCodigo = (periodo ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(periodoCodigo))
+            throw new ArgumentException("El periodo es requerido.", nameof(periodo));
+
+        if (detalle is null)
+            throw new InvalidOperationException("El detalle a guardar es requerido.");
+
+        var periodoEntity = await _db.Periodos.FirstOrDefaultAsync(x => x.Codigo == periodoCodigo)
+            ?? throw new InvalidOperationException($"No existe el período '{periodoCodigo}'.");
+
+        var origen = (detalle.Origen ?? string.Empty).Trim().ToUpperInvariant();
+        if (origen is "HORAS")
+        {
+            var hora = await _db.HorasMensuales
+                .FirstOrDefaultAsync(x => x.Id == detalle.RegistroId && x.PeriodoId == periodoEntity.Id)
+                ?? throw new InvalidOperationException("No se encontró el registro de horas a editar.");
+
+            hora.Categoria = (detalle.CategoriaOTipo ?? string.Empty).Trim();
+            hora.HorasEquivalentes = detalle.MontoOHoras;
+
+            if (!string.IsNullOrWhiteSpace(detalle.NumeroFuncionarioDestino))
+            {
+                var destino = await _db.Funcionarios
+                    .FirstOrDefaultAsync(x => x.NumeroFuncionario == detalle.NumeroFuncionarioDestino.Trim())
+                    ?? throw new InvalidOperationException($"No existe el funcionario destino '{detalle.NumeroFuncionarioDestino}'.");
+
+                hora.FuncionarioId = destino.Id;
+                hora.NombreFuncionarioExcel = destino.Nombre;
+            }
+        }
+        else if (origen is "PAGOS")
+        {
+            var pago = await _db.PagosMensuales
+                .FirstOrDefaultAsync(x => x.Id == detalle.RegistroId && x.PeriodoId == periodoEntity.Id)
+                ?? throw new InvalidOperationException("No se encontró el registro de pagos a editar.");
+
+            pago.TipoObraOriginal = (detalle.CategoriaOTipo ?? string.Empty).Trim();
+            pago.TotalGenerado = detalle.MontoOHoras;
+            pago.Observacion = (detalle.Observacion ?? string.Empty).Trim();
+
+            if (!string.IsNullOrWhiteSpace(detalle.NumeroFuncionarioDestino))
+            {
+                var destino = await _db.Funcionarios
+                    .FirstOrDefaultAsync(x => x.NumeroFuncionario == detalle.NumeroFuncionarioDestino.Trim())
+                    ?? throw new InvalidOperationException($"No existe el funcionario destino '{detalle.NumeroFuncionarioDestino}'.");
+
+                pago.FuncionarioId = destino.Id;
+                pago.NombreFuncionarioExcel = destino.Nombre;
+            }
+        }
+        else
+        {
+            throw new InvalidOperationException("Origen de detalle no soportado para edición.");
+        }
+
+        _db.AuditoriaEventos.Add(new AuditoriaEvento
+        {
+            Usuario = string.IsNullOrWhiteSpace(usuario) ? "sistema" : usuario,
+            Modulo = "Consistencia",
+            Accion = "EditarDetalle",
+            Entidad = detalle.Origen,
+            EntidadClave = detalle.RegistroId.ToString(),
+            Detalle = $"Edición directa de inconsistencia en periodo {periodoCodigo}."
+        });
+
+        await _db.SaveChangesAsync();
+    }
 }

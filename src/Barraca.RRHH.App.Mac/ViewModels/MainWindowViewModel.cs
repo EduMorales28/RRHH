@@ -396,6 +396,12 @@ public class MainWindowViewModel : INotifyPropertyChanged
         return await _consistenciaService.ObtenerDetalleErrorAsync(periodoNormalizado, tipo, funcionarioId);
     }
 
+    public async Task GuardarDetalleConsistenciaAsync(ConsistenciaDetalleRegistroDto detalle)
+    {
+        var periodoNormalizado = NormalizarPeriodo(Periodo);
+        await _consistenciaService.GuardarDetalleErrorAsync(periodoNormalizado, detalle, "admin");
+    }
+
     private static string NormalizarPeriodo(string input)
     {
         var value = input.Trim();

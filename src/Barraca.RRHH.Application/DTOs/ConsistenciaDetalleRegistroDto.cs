@@ -9,4 +9,5 @@ public class ConsistenciaDetalleRegistroDto
     public string CategoriaOTipo { get; set; } = string.Empty;
     public decimal MontoOHoras { get; set; }
     public string Observacion { get; set; } = string.Empty;
+    public string NumeroFuncionarioDestino { get; set; } = string.Empty;
 }
