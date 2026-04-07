@@ -9,10 +9,12 @@ namespace Barraca.RRHH.Infrastructure.Reports;
 public static class PdfReportStyle
 {
     // Palette
-    public static Color Primary = Colors.Blue.Darken1; // main brand-ish
-    public static Color Accent = Colors.Green.Darken1; // totals / bands
+    public static Color Primary = Colors.Green.Darken3;
+    public static Color Accent = Colors.Green.Darken1;
     public static Color LightGrey = Colors.Grey.Lighten4;
     public static Color MediumGrey = Colors.Grey.Lighten2;
+    public static Color SoftGreen = Colors.Green.Lighten5;
+    public static Color BorderGreen = Colors.Green.Lighten2;
 
     // Typography sizes (improved hierarchy)
     public const float TitleSize = 22f;
@@ -84,9 +86,9 @@ public static class PdfReportStyle
     public static void CorporateCover(IContainer container, string title, string subtitle, string periodo, DateTime generated)
     {
         container
-            .Background(Colors.Blue.Lighten5)
+            .Background(SoftGreen)
             .Border(1)
-            .BorderColor(Colors.Blue.Lighten3)
+            .BorderColor(BorderGreen)
             .Padding(14)
             .Column(col =>
             {
@@ -103,32 +105,32 @@ public static class PdfReportStyle
 
     public static void ColorBand(IContainer container, string text, Color color)
     {
-        container.Element(c => c.Background(color).Padding(8).Text(text).SemiBold().FontSize(SectionSize));
+        container.Element(c => c.Background(color).Padding(8).Text(text).SemiBold().FontSize(SectionSize).FontColor(Colors.White));
     }
 
     public static Color TipoObraColor(TipoObra tipo)
     {
         return tipo switch
         {
-            TipoObra.Construccion => Colors.Blue.Lighten3,
-            TipoObra.IndustriaYComercio => Colors.Orange.Lighten3,
-            TipoObra.Administracion => Colors.Purple.Lighten3,
-            _ => Colors.Grey.Lighten3
+            TipoObra.Construccion => Colors.Green.Darken2,
+            TipoObra.IndustriaYComercio => Colors.Green.Darken1,
+            TipoObra.Administracion => Colors.Green.Darken3,
+            _ => Colors.Green.Darken1
         };
     }
 
     public static void GreenTotalBox(IContainer container, string label, string value)
     {
-        container.Element(c => c.Background(Colors.Green.Lighten4).Padding(10).Row(r =>
+        container.Element(c => c.Background(SoftGreen).Border(1).BorderColor(BorderGreen).Padding(10).Row(r =>
         {
-            r.RelativeItem().Text(label).SemiBold().FontSize(SmallSize);
-            r.ConstantItem(160).AlignRight().Text(value).Bold().FontSize(SmallSize);
+            r.RelativeItem().Text(label).SemiBold().FontSize(SmallSize).FontColor(Accent);
+            r.ConstantItem(160).AlignRight().Text(value).Bold().FontSize(SmallSize).FontColor(Accent);
         }));
     }
 
     public static IContainer TableHeaderCell(IContainer container)
     {
-        return container.Background(LightGrey).Padding(8).BorderBottom(1).BorderColor(MediumGrey);
+        return container.Background(Colors.Grey.Lighten3).Padding(8).BorderBottom(1).BorderColor(MediumGrey);
     }
 
     public static IContainer TableCell(IContainer container)
