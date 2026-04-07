@@ -71,7 +71,7 @@
           </StackPanel>
 
           <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,0,0,12" Background="White" CornerRadius="10" Padding="12">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="180,*,Auto,Auto" ColumnSpacing="8">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="180,*,Auto,Auto">
               <TextBlock Grid.Row="0" Grid.Column="0" Text="Plantilla Funcionarios" VerticalAlignment="Center"/>
               <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding RutaFuncionarios}" Watermark="Ruta .xlsx"/>
               <Button Grid.Row="0" Grid.Column="2" Content="Seleccionar" Click="SeleccionarFuncionarios_Click" Padding="12,6"/>

@@ -244,6 +244,11 @@ public class ReportService : IReportService
                     var sectionIndex = 1;
                     foreach (var grp in grouped)
                     {
+                        var subtotalAdel = grp.Sum(y => y.Adelanto);
+                        var subtotalLiquido = grp.Sum(y => y.Liquido);
+                        var subtotalRet = grp.Sum(y => y.Retencion);
+                        var subtotalTipo = grp.Sum(y => y.TotalGenerado);
+
                         var tipoColor = PdfReportStyle.TipoObraColor(TipoObraParser.Parse(grp.Key));
                         col.Item().PaddingTop(10).Element(c =>
                             c.Border(1).BorderColor(tipoColor).Padding(8).Column(section =>
