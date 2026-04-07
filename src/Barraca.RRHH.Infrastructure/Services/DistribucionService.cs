@@ -63,118 +63,103 @@ public class DistribucionService : IDistribucionService
             if (!horasTipo.Any())
                 continue;
 
-            var costoTotalTipo = pagos.Where(x => x.TipoObra == tipoObra).Sum(x => x.TotalGenerado);
+            // Regla de negocio: el total del tipo de obra siempre sale de
+            // Adelanto + Liquido + Retencion, no de un total importado en crudo.
+            var costoTotalTipo = pagos
+                .Where(x => x.TipoObra == tipoObra)
+                .Sum(x => x.Adelanto + x.Liquido + x.Retencion);
+
             var horasTotalesTipo = horasTipo.Sum(x => x.HorasEquivalentes);
 
             if (horasTotalesTipo <= 0 || costoTotalTipo <= 0)
                 continue;
 
-            var agrupadas = horasTipo
+            var obrasDelTipo = horasTipo
                 .GroupBy(x => new
                 {
                     x.ObraId,
                     NumeroObra = x.Obra!.NumeroObra,
-                    NombreObra = x.Obra!.Nombre,
-                    x.Categoria
+                    NombreObra = x.Obra!.Nombre
                 })
                 .Select(g => new
                 {
                     g.Key.ObraId,
                     g.Key.NumeroObra,
                     g.Key.NombreObra,
-                    g.Key.Categoria,
-                    HorasLinea = g.Sum(x => x.HorasEquivalentes)
+                    HorasObra = g.Sum(x => x.HorasEquivalentes)
                 })
                 .OrderBy(x => x.NumeroObra)
-                .ThenBy(x => x.Categoria)
                 .ToList();
 
-            // Calcula montos por línea y ajusta diferencia de redondeo para que
-            // el total distribuido del tipo de obra cierre exactamente con el costo total.
-            var lineasCalculadas = agrupadas
-                .Select(item =>
-                {
-                    var porcentaje = item.HorasLinea / horasTotalesTipo;
-                    var monto = Math.Round(porcentaje * costoTotalTipo, 2, MidpointRounding.AwayFromZero);
-                    return new
+            var montosPorObra = DistribuirMontoConCierre(
+                obrasDelTipo.Select(x => (x.ObraId, x.HorasObra)).ToList(),
+                costoTotalTipo);
+
+            foreach (var obra in obrasDelTipo)
+            {
+                if (!montosPorObra.TryGetValue(obra.ObraId, out var montoObra) || montoObra <= 0)
+                    continue;
+
+                var categoriasObra = horasTipo
+                    .Where(x => x.ObraId == obra.ObraId)
+                    .GroupBy(x => x.Categoria)
+                    .Select(g => new
                     {
-                        item.ObraId,
-                        item.NumeroObra,
-                        item.NombreObra,
-                        item.Categoria,
-                        item.HorasLinea,
-                        Porcentaje = porcentaje,
-                        Monto = monto
+                        Categoria = g.Key,
+                        HorasCategoria = g.Sum(x => x.HorasEquivalentes)
+                    })
+                    .OrderBy(x => x.Categoria)
+                    .ToList();
+
+                var montosPorCategoria = DistribuirMontoConCierre(
+                    categoriasObra.Select(x => (x.Categoria, x.HorasCategoria)).ToList(),
+                    montoObra);
+
+                foreach (var cat in categoriasObra)
+                {
+                    if (!montosPorCategoria.TryGetValue(cat.Categoria, out var montoLinea) || cat.HorasCategoria <= 0)
+                        continue;
+
+                    var porcentaje = cat.HorasCategoria / horasTotalesTipo;
+                    var valorHora = Math.Round(montoLinea / cat.HorasCategoria, 2, MidpointRounding.AwayFromZero);
+                    var jornales = Math.Round(cat.HorasCategoria / 8.8m, 2, MidpointRounding.AwayFromZero);
+
+                    var dto = new DistribucionLineaDto
+                    {
+                        TipoObra = tipoObra,
+                        ObraId = obra.ObraId,
+                        NumeroObra = obra.NumeroObra,
+                        NombreObra = obra.NombreObra,
+                        Categoria = cat.Categoria,
+                        HorasLinea = cat.HorasCategoria,
+                        HorasTotalesTipoObra = horasTotalesTipo,
+                        CostoTotalTipoObra = costoTotalTipo,
+                        PorcentajeParticipacion = porcentaje,
+                        MontoLinea = montoLinea,
+                        ValorHora = valorHora,
+                        Jornales = jornales
                     };
-                })
-                .ToList();
 
-            var totalDistribuido = lineasCalculadas.Sum(x => x.Monto);
-            var diferencia = Math.Round(costoTotalTipo - totalDistribuido, 2, MidpointRounding.AwayFromZero);
+                    resultado.Add(dto);
 
-            if (diferencia != 0m && lineasCalculadas.Count > 0)
-            {
-                var idxAjuste = lineasCalculadas
-                    .Select((x, idx) => new { idx, x.HorasLinea })
-                    .OrderByDescending(x => x.HorasLinea)
-                    .First()
-                    .idx;
-
-                var target = lineasCalculadas[idxAjuste];
-                lineasCalculadas[idxAjuste] = new
-                {
-                    target.ObraId,
-                    target.NumeroObra,
-                    target.NombreObra,
-                    target.Categoria,
-                    target.HorasLinea,
-                    target.Porcentaje,
-                    Monto = target.Monto + diferencia
-                };
-            }
-
-            foreach (var item in lineasCalculadas)
-            {
-                var porcentaje = item.Porcentaje;
-                var monto = item.Monto;
-                var valorHora = item.HorasLinea == 0 ? 0 : Math.Round(monto / item.HorasLinea, 2, MidpointRounding.AwayFromZero);
-                var jornales = Math.Round(item.HorasLinea / 8.8m, 2, MidpointRounding.AwayFromZero);
-
-                var dto = new DistribucionLineaDto
-                {
-                    TipoObra = tipoObra,
-                    ObraId = item.ObraId,
-                    NumeroObra = item.NumeroObra,
-                    NombreObra = item.NombreObra,
-                    Categoria = item.Categoria,
-                    HorasLinea = item.HorasLinea,
-                    HorasTotalesTipoObra = horasTotalesTipo,
-                    CostoTotalTipoObra = costoTotalTipo,
-                    PorcentajeParticipacion = porcentaje,
-                    MontoLinea = monto,
-                    ValorHora = valorHora,
-                    Jornales = jornales
-                };
-
-                resultado.Add(dto);
-
-                if (persistir && corrida is not null)
-                {
-                    _db.DistribucionesCosto.Add(new DistribucionCosto
+                    if (persistir && corrida is not null)
                     {
-                        PeriodoId = periodoEntity.Id,
-                        CorridaProceso = corrida,
-                        TipoObra = dto.TipoObra,
-                        ObraId = dto.ObraId,
-                        Categoria = dto.Categoria,
-                        HorasLinea = dto.HorasLinea,
-                        HorasTotalesTipoObra = dto.HorasTotalesTipoObra,
-                        CostoTotalTipoObra = dto.CostoTotalTipoObra,
-                        PorcentajeParticipacion = dto.PorcentajeParticipacion,
-                        MontoLinea = dto.MontoLinea,
-                        ValorHora = dto.ValorHora,
-                        Jornales = dto.Jornales
-                    });
+                        _db.DistribucionesCosto.Add(new DistribucionCosto
+                        {
+                            PeriodoId = periodoEntity.Id,
+                            CorridaProceso = corrida,
+                            TipoObra = dto.TipoObra,
+                            ObraId = dto.ObraId,
+                            Categoria = dto.Categoria,
+                            HorasLinea = dto.HorasLinea,
+                            HorasTotalesTipoObra = dto.HorasTotalesTipoObra,
+                            CostoTotalTipoObra = dto.CostoTotalTipoObra,
+                            PorcentajeParticipacion = dto.PorcentajeParticipacion,
+                            MontoLinea = dto.MontoLinea,
+                            ValorHora = dto.ValorHora,
+                            Jornales = dto.Jornales
+                        });
+                    }
                 }
             }
         }
@@ -204,6 +189,52 @@ public class DistribucionService : IDistribucionService
                 throw;
             }
         }
+
+        return resultado;
+    }
+
+    private static Dictionary<TKey, decimal> DistribuirMontoConCierre<TKey>(
+        IReadOnlyList<(TKey Key, decimal Horas)> items,
+        decimal montoTotal)
+        where TKey : notnull
+    {
+        var resultado = new Dictionary<TKey, decimal>();
+        if (items.Count == 0 || montoTotal <= 0)
+            return resultado;
+
+        var horasTotales = items.Sum(x => x.Horas);
+        if (horasTotales <= 0)
+            return resultado;
+
+        var calculados = items
+            .Select(x => new
+            {
+                x.Key,
+                x.Horas,
+                Monto = Math.Round((x.Horas / horasTotales) * montoTotal, 2, MidpointRounding.AwayFromZero)
+            })
+            .ToList();
+
+        var suma = calculados.Sum(x => x.Monto);
+        var diferencia = Math.Round(montoTotal - suma, 2, MidpointRounding.AwayFromZero);
+
+        if (diferencia != 0m)
+        {
+            var ancla = calculados
+                .OrderByDescending(x => x.Horas)
+                .First();
+
+            calculados.Remove(ancla);
+            calculados.Add(new
+            {
+                ancla.Key,
+                ancla.Horas,
+                Monto = ancla.Monto + diferencia
+            });
+        }
+
+        foreach (var item in calculados)
+            resultado[item.Key] = item.Monto;
 
         return resultado;
     }
