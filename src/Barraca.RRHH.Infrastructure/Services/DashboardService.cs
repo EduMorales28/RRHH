@@ -36,6 +36,26 @@ public class DashboardService : IDashboardService
             };
         }
 
+        if (_db.Database.IsSqlite())
+        {
+            var pagos = await _db.PagosMensuales
+                .Where(x => x.PeriodoId == periodoId)
+                .Select(x => new { x.Adelanto, x.Liquido, x.Retencion, x.TotalGenerado })
+                .ToListAsync();
+
+            return new DashboardResumenDto
+            {
+                Periodo = periodo!,
+                FuncionariosActivos = await _db.Funcionarios.CountAsync(x => x.Activo),
+                ObrasActivas = await _db.Obras.CountAsync(x => x.Activa),
+                Adelantos = pagos.Sum(x => x.Adelanto),
+                Liquidos = pagos.Sum(x => x.Liquido),
+                Retenciones = pagos.Sum(x => x.Retencion),
+                TotalGenerado = pagos.Sum(x => x.TotalGenerado),
+                LineasDistribuidas = await _db.DistribucionesCosto.Where(x => x.PeriodoId == periodoId).CountAsync()
+            };
+        }
+
         return new DashboardResumenDto
         {
             Periodo = periodo!,

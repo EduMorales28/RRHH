@@ -25,27 +25,51 @@ public class ConsistenciaService : IConsistenciaService
         if (periodoEntity is null)
             return Array.Empty<ConsistenciaFuncionarioErrorDto>();
 
-        var horasPorFuncionario = await _db.HorasMensuales
-            .Where(x => x.PeriodoId == periodoEntity.Id)
-            .GroupBy(x => x.FuncionarioId)
-            .Select(g => new
-            {
-                FuncionarioId = g.Key,
-                RegistrosHoras = g.Count(),
-                TotalHoras = g.Sum(x => x.HorasEquivalentes)
-            })
-            .ToListAsync();
+        List<(int FuncionarioId, int RegistrosHoras, decimal TotalHoras)> horasPorFuncionario;
+        List<(int FuncionarioId, int RegistrosPagos, decimal TotalPagos)> pagosPorFuncionario;
 
-        var pagosPorFuncionario = await _db.PagosMensuales
-            .Where(x => x.PeriodoId == periodoEntity.Id)
-            .GroupBy(x => x.FuncionarioId)
-            .Select(g => new
-            {
-                FuncionarioId = g.Key,
-                RegistrosPagos = g.Count(),
-                TotalPagos = g.Sum(x => x.TotalGenerado)
-            })
-            .ToListAsync();
+        if (_db.Database.IsSqlite())
+        {
+            var horasRaw = await _db.HorasMensuales
+                .Where(x => x.PeriodoId == periodoEntity.Id)
+                .Select(x => new { x.FuncionarioId, x.HorasEquivalentes })
+                .ToListAsync();
+
+            horasPorFuncionario = horasRaw
+                .GroupBy(x => x.FuncionarioId)
+                .Select(g => (g.Key, g.Count(), g.Sum(x => x.HorasEquivalentes)))
+                .ToList();
+
+            var pagosRaw = await _db.PagosMensuales
+                .Where(x => x.PeriodoId == periodoEntity.Id)
+                .Select(x => new { x.FuncionarioId, x.TotalGenerado })
+                .ToListAsync();
+
+            pagosPorFuncionario = pagosRaw
+                .GroupBy(x => x.FuncionarioId)
+                .Select(g => (g.Key, g.Count(), g.Sum(x => x.TotalGenerado)))
+                .ToList();
+        }
+        else
+        {
+            horasPorFuncionario = await _db.HorasMensuales
+                .Where(x => x.PeriodoId == periodoEntity.Id)
+                .GroupBy(x => x.FuncionarioId)
+                .Select(g => new ValueTuple<int, int, decimal>(
+                    g.Key,
+                    g.Count(),
+                    g.Sum(x => x.HorasEquivalentes)))
+                .ToListAsync();
+
+            pagosPorFuncionario = await _db.PagosMensuales
+                .Where(x => x.PeriodoId == periodoEntity.Id)
+                .GroupBy(x => x.FuncionarioId)
+                .Select(g => new ValueTuple<int, int, decimal>(
+                    g.Key,
+                    g.Count(),
+                    g.Sum(x => x.TotalGenerado)))
+                .ToListAsync();
+        }
 
         var funcionarios = await _db.Funcionarios
             .Select(x => new { x.Id, x.NumeroFuncionario, x.Nombre })
