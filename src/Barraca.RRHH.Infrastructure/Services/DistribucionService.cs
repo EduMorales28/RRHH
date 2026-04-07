@@ -39,6 +39,10 @@ public class DistribucionService : IDistribucionService
             .Where(x => x.PeriodoId == periodoEntity.Id)
             .ToListAsync();
 
+        if (pagos.Count == 0)
+            throw new InvalidOperationException(
+                $"No hay registros en PAGOS para el período {periodoCodigo}. Importa la plantilla PAGOS y vuelve a intentar.");
+
         var funcionarios = await _db.Funcionarios
             .Select(x => new { x.Id, x.NumeroFuncionario, x.Nombre })
             .ToListAsync();
@@ -55,6 +59,10 @@ public class DistribucionService : IDistribucionService
         var horasDistribuibles = horas
             .Where(x => x.Obra is not null && x.HorasEquivalentes > 0m)
             .ToList();
+
+        if (horasDistribuibles.Count == 0)
+            throw new InvalidOperationException(
+                $"No hay horas distribuibles para el período {periodoCodigo}. Verifica importación de HORAS y que HorasEquivalentes sea mayor a 0.");
 
         ValidarSedesParaAdministrativos(horasDistribuibles, obrasSedePorTipo);
 
@@ -74,6 +82,10 @@ public class DistribucionService : IDistribucionService
             .Where(x => x.Value > 0m
                 && (!horasTotalesPorFuncionarioTipo.TryGetValue(x.Key, out var horasFuncTipo) || horasFuncTipo <= 0m))
             .ToList();
+
+        if (!totalPorFuncionarioTipo.Any(x => x.Value > 0m))
+            throw new InvalidOperationException(
+                $"No hay montos positivos en PAGOS para el período {periodoCodigo}. Verifica columnas Adelanto/Liquido/Retencion en la plantilla.");
 
         if (funcionariosTipoConPagoSinHoras.Count > 0)
         {

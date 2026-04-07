@@ -12,6 +12,24 @@
 
   <Application.Styles>
     <FluentTheme />
+    <Style Selector="TextBlock">
+      <Setter Property="FontFamily" Value="Segoe UI, Arial"/>
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="FontFamily" Value="Segoe UI, Arial"/>
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="FontFamily" Value="Segoe UI, Arial"/>
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="FontFamily" Value="Segoe UI, Arial"/>
+    </Style>
+    <Style Selector="ListBox">
+      <Setter Property="FontFamily" Value="Segoe UI, Arial"/>
+    </Style>
+    <Style Selector="TabItem">
+      <Setter Property="FontFamily" Value="Segoe UI, Arial"/>
+    </Style>
     <Style Selector="Button">
       <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
       <Setter Property="Foreground" Value="White"/>
