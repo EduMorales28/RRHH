@@ -108,10 +108,8 @@
           <Border Grid.Row="2" Grid.Column="1" Margin="8,0,0,0" Background="White" CornerRadius="10" Padding="14">
             <StackPanel Spacing="8">
               <TextBlock Text="Destino de reportes" FontSize="18" FontWeight="SemiBold"/>
-              <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBox Width="420" Text="{Binding CarpetaReportes}"/>
-                <Button Content="Seleccionar carpeta" Click="SeleccionarDestinoReportes_Click" />
-              </StackPanel>
+              <Button Content="Elegir dónde guardar reportes" Click="SeleccionarDestinoReportes_Click" HorizontalAlignment="Left"/>
+              <TextBlock Text="{Binding CarpetaReportes}" Foreground="#64748B" TextWrapping="Wrap"/>
               <TextBlock Text="Reportes generados" Margin="0,8,0,0" FontWeight="SemiBold"/>
               <ListBox ItemsSource="{Binding ReportesRecientes}" Height="280"/>
             </StackPanel>
