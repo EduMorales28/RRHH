@@ -64,3 +64,16 @@ Hoja: `PAGOS`
 - Cliente forzado a `Almirtaun` para Construcción, Industria y Comercio y N-A
 - Cliente variable para Administración
 - Tipo de pago forzado: `Efectivo` solo para N-A y `RedPagos` para el resto
+
+## Salidas de reportes requeridas
+- Adelantos:
+	- Tipo de obra, funcionario y monto de adelanto.
+- Pagos a funcionarios - Red Pagos:
+	- Tipo de obra, funcionario, banco, cuenta nueva, cuenta vieja, monto a pagar (líquido).
+- Retenciones:
+	- Funcionario (código y nombre), importe de retención, responsable, banco del responsable, cuenta del responsable, observaciones.
+- Pagos N-A:
+	- Funcionario, banco, cuenta nueva, cuenta vieja y monto a pagar.
+- Distribución por obra:
+	- Base de cálculo por tipo de obra: costo total del tipo y horas equivalentes del tipo.
+	- Distribución interna por obra/categoría según participación de horas en el total del tipo.

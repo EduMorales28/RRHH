@@ -81,7 +81,7 @@ public class ReportService : IReportService
     {
         var periodoId = await ObtenerPeriodoId(periodo);
         var rows = await _db.PagosMensuales.Include(x => x.Funcionario).ThenInclude(f => f!.CuentasPago)
-            .Where(x => x.PeriodoId == periodoId && x.TipoPago.ToUpper().Contains("RED") && x.Liquido > 0)
+            .Where(x => x.PeriodoId == periodoId && x.TipoObra != TipoObra.NA && x.TipoPago.ToUpper().Contains("RED") && x.Liquido > 0)
             .OrderBy(x => x.TipoObra).ThenBy(x => x.Funcionario!.Nombre)
             .ToListAsync();
 
@@ -160,20 +160,20 @@ public class ReportService : IReportService
                                 {
                                     x.Table(t =>
                                     {
-                                        t.ColumnsDefinition(cd => { cd.RelativeColumn(4f); cd.RelativeColumn(1f); cd.RelativeColumn(0.4f); });
+                                        t.ColumnsDefinition(cd => { cd.RelativeColumn(1.2f); cd.RelativeColumn(3.2f); cd.RelativeColumn(1f); });
 
                                         t.Header(h =>
                                         {
+                                            h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Tipo"));
                                             h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Funcionario"));
                                             h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Adelanto").AlignRight());
-                                            h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text(string.Empty));
                                         });
 
                                         foreach (var p in grp)
                                         {
+                                            t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(AbreviarTipoObra(p.TipoObra)));
                                             t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(p.Funcionario?.Nombre ?? ""));
                                             t.Cell().Element(cell => PdfReportStyle.TableCell(cell).AlignRight().Text(p.Adelanto.ToString("N2")));
-                                            t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(string.Empty));
                                             totalAdel += p.Adelanto;
                                         }
                                     });
@@ -485,6 +485,7 @@ public class ReportService : IReportService
                                     {
                                         t.ColumnsDefinition(cd =>
                                         {
+                                            cd.RelativeColumn(1.2f);
                                             cd.RelativeColumn(2.5f);
                                             cd.RelativeColumn(1.4f);
                                             cd.RelativeColumn(1.6f);
@@ -494,16 +495,18 @@ public class ReportService : IReportService
 
                                         t.Header(h =>
                                         {
+                                            h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Tipo de obra"));
                                             h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Funcionario"));
                                             h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Banco"));
                                             h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Cuenta nueva"));
                                             h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Cuenta vieja"));
-                                            h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Monto").AlignRight());
+                                            h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Monto a pagar").AlignRight());
                                         });
 
                                         foreach (var r in grp)
                                         {
                                             var cuenta = r.Funcionario?.CuentasPago.FirstOrDefault();
+                                            t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(AbreviarTipoObra(r.TipoObra)));
                                             t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(r.Funcionario?.Nombre ?? ""));
                                             t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(cuenta?.Banco ?? r.TipoPago));
                                             t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(cuenta?.CuentaNueva ?? ""));
@@ -574,32 +577,32 @@ public class ReportService : IReportService
                                 {
                                     t.ColumnsDefinition(cd =>
                                     {
-                                        cd.RelativeColumn(1f);
-                                        cd.RelativeColumn(2.4f);
+                                        cd.RelativeColumn(2.6f);
                                         cd.RelativeColumn(1f);
                                         cd.RelativeColumn(2f);
                                         cd.RelativeColumn(1.4f);
                                         cd.RelativeColumn(1.8f);
+                                        cd.RelativeColumn(2f);
                                     });
 
                                     t.Header(h =>
                                     {
-                                        h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("N°"));
                                         h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Funcionario"));
                                         h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Importe").AlignRight());
                                         h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Responsable"));
                                         h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Banco"));
                                         h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Cuenta"));
+                                        h.Cell().Element(cell => PdfReportStyle.TableHeaderCell(cell).Text("Observaciones"));
                                     });
 
                                     foreach (var r in rows)
                                     {
-                                        t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(r.Funcionario?.NumeroFuncionario ?? ""));
-                                        t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(r.Funcionario?.Nombre ?? ""));
+                                        t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text($"{r.Funcionario?.NumeroFuncionario} - {r.Funcionario?.Nombre}"));
                                         t.Cell().Element(cell => PdfReportStyle.TableCell(cell).AlignRight().Text(r.Retencion.ToString("N2")));
                                         t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(r.Funcionario?.ResponsableRetencion ?? ""));
                                         t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(r.Funcionario?.BancoRetencion ?? ""));
                                         t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(r.Funcionario?.CuentaRetencion ?? ""));
+                                        t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(r.Observacion ?? ""));
                                         totalRet += r.Retencion;
                                     }
                                 });
@@ -667,5 +670,16 @@ public class ReportService : IReportService
         _db.AuditoriaEventos.Add(new AuditoriaEvento { Usuario = usuario, Modulo = "Reportes", Accion = "Eliminar", Entidad = "Archivo", EntidadClave = ruta, Detalle = "Eliminado desde UI" });
         await _db.SaveChangesAsync();
         return 1;
+    }
+
+    private static string AbreviarTipoObra(TipoObra tipo)
+    {
+        return tipo switch
+        {
+            TipoObra.Construccion => "CONST.",
+            TipoObra.IndustriaYComercio => "IND. Y COM.",
+            TipoObra.Administracion => "ADM.",
+            _ => "N-A"
+        };
     }
 }
