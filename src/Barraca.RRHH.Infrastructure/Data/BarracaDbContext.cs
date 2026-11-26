@@ -17,6 +17,9 @@ public class BarracaDbContext : DbContext
     public DbSet<DistribucionCosto> DistribucionesCosto => Set<DistribucionCosto>();
     public DbSet<AuditoriaEvento> AuditoriaEventos => Set<AuditoriaEvento>();
     public DbSet<IncidenciaImportacion> IncidenciasImportacion => Set<IncidenciaImportacion>();
+    public DbSet<CodigoAbaco> CodigosAbaco => Set<CodigoAbaco>();
+    public DbSet<CodigoHoras> CodigosHoras => Set<CodigoHoras>();
+    public DbSet<ObraHoras> ObrasHoras => Set<ObraHoras>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -105,6 +108,27 @@ public class BarracaDbContext : DbContext
             entity.Property(x => x.Entidad).HasMaxLength(100);
             entity.Property(x => x.EntidadClave).HasMaxLength(100);
             entity.Property(x => x.Detalle).HasMaxLength(500);
+        });
+
+        modelBuilder.Entity<CodigoAbaco>(entity =>
+        {
+            entity.HasIndex(x => new { x.TipoObra, x.Codigo }).IsUnique();
+            entity.Property(x => x.Codigo).HasMaxLength(50);
+            entity.HasOne(x => x.Funcionario).WithMany().HasForeignKey(x => x.FuncionarioId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CodigoHoras>(entity =>
+        {
+            entity.HasIndex(x => new { x.TipoObra, x.Codigo }).IsUnique();
+            entity.Property(x => x.Codigo).HasMaxLength(50);
+            entity.HasOne(x => x.Funcionario).WithMany().HasForeignKey(x => x.FuncionarioId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ObraHoras>(entity =>
+        {
+            entity.HasIndex(x => new { x.TipoObra, x.Nombre }).IsUnique();
+            entity.Property(x => x.Nombre).HasMaxLength(200);
+            entity.HasOne(x => x.Obra).WithMany().HasForeignKey(x => x.ObraId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<IncidenciaImportacion>(entity =>

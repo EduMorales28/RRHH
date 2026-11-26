@@ -156,6 +156,7 @@ public class ExcelImportService : IExcelImportService
         using var workbook = new XLWorkbook(excelStream);
         var ws = workbook.Worksheet("HORAS");
         var periodoCodigo = periodo.Trim();
+        await PeriodoGuard.VerificarAbiertoAsync(_db, periodoCodigo);
         var periodoEntity = await ObtenerOCrearPeriodo(periodoCodigo);
         var procesados = 0;
         var creadosAutomaticos = 0;
@@ -166,6 +167,9 @@ public class ExcelImportService : IExcelImportService
         {
             var existentes = _db.HorasMensuales.Where(x => x.PeriodoId == periodoEntity.Id);
             _db.HorasMensuales.RemoveRange(existentes);
+
+            // La distribución guardada deja de ser válida al reemplazar los datos del período.
+            _db.DistribucionesCosto.RemoveRange(_db.DistribucionesCosto.Where(x => x.PeriodoId == periodoEntity.Id));
 
             foreach (var row in FilasDatosHoras(ws))
             {
@@ -238,7 +242,7 @@ public class ExcelImportService : IExcelImportService
 
                 var horasComunes = layoutConClienteEn8 ? LeerDecimal(row.Cell(9)) : LeerDecimal(row.Cell(8));
                 var horasExtras = layoutConClienteEn8 ? LeerDecimal(row.Cell(10)) : LeerDecimal(row.Cell(9));
-                var horasEq = horasComunes + (horasExtras * 2m);
+                var horasEq = HoraMensual.CalcularEquivalentes(horasComunes, horasExtras, 0m);
 
                 if (tipoObra is TipoObra.Construccion or TipoObra.IndustriaYComercio or TipoObra.NA)
                     cliente = "Almirtaun";
@@ -294,6 +298,8 @@ public class ExcelImportService : IExcelImportService
         catch
         {
             await tx.RollbackAsync();
+            // Descarta borrados/altas pendientes para que no se guarden en el próximo SaveChanges.
+            _db.ChangeTracker.Clear();
             throw;
         }
     }
@@ -307,16 +313,21 @@ public class ExcelImportService : IExcelImportService
         using var workbook = new XLWorkbook(excelStream);
         var ws = workbook.Worksheet("PAGOS");
         var periodoCodigo = periodo.Trim();
+        await PeriodoGuard.VerificarAbiertoAsync(_db, periodoCodigo);
         var periodoEntity = await ObtenerOCrearPeriodo(periodoCodigo);
         var procesados = 0;
         var creadosAutomaticos = 0;
         var incidencias = 0;
+        var totalMontos = 0m;
 
         await using var tx = await _db.Database.BeginTransactionAsync();
         try
         {
             var existentes = _db.PagosMensuales.Where(x => x.PeriodoId == periodoEntity.Id);
             _db.PagosMensuales.RemoveRange(existentes);
+
+            // La distribución guardada deja de ser válida al reemplazar los datos del período.
+            _db.DistribucionesCosto.RemoveRange(_db.DistribucionesCosto.Where(x => x.PeriodoId == periodoEntity.Id));
 
             foreach (var row in FilasDatosPagos(ws))
             {
@@ -447,8 +458,15 @@ public class ExcelImportService : IExcelImportService
                     Observacion = row.Cell(12).GetString().Trim()
                 });
 
+                totalMontos += totalCalculado;
                 procesados++;
             }
+
+            // Una plantilla sin montos (columnas G/H/I vacías) borraría los pagos del período sin aviso.
+            if (procesados > 0 && totalMontos == 0m)
+                throw new InvalidOperationException(
+                    $"La planilla PAGOS tiene {procesados} filas pero ADELANTO, LIQUIDO y RETENCION están vacíos o en 0 en todas. " +
+                    "Verifique que sea la planilla completada. No se modificaron los pagos del período.");
 
             _db.AuditoriaEventos.Add(new AuditoriaEvento
             {
@@ -467,6 +485,8 @@ public class ExcelImportService : IExcelImportService
         catch
         {
             await tx.RollbackAsync();
+            // Descarta borrados/altas pendientes para que no se guarden en el próximo SaveChanges.
+            _db.ChangeTracker.Clear();
             throw;
         }
     }
@@ -608,7 +628,7 @@ public class ExcelImportService : IExcelImportService
         }
     }
 
-    private static decimal LeerDecimal(IXLCell cell)
+    internal static decimal LeerDecimal(IXLCell cell)
     {
         if (cell.IsEmpty())
             return 0m;
@@ -619,39 +639,38 @@ public class ExcelImportService : IExcelImportService
         return decimal.TryParse(cell.GetString().Trim(), out value) ? value : 0m;
     }
 
-    private static IEnumerable<IXLRow> FilasDatosHoras(IXLWorksheet ws)
+    internal static IEnumerable<IXLRow> FilasDatosHoras(IXLWorksheet ws)
+    {
+        // Columnas numéricas de horas (cubre ambos layouts: H-J o I-K).
+        return FilasDatos(ws, 8, 9, 10, 11);
+    }
+
+    internal static IEnumerable<IXLRow> FilasDatosPagos(IXLWorksheet ws)
+    {
+        // Columnas de montos: G adelanto, H líquido, I retención, K total.
+        return FilasDatos(ws, 7, 8, 9, 11);
+    }
+
+    private static IEnumerable<IXLRow> FilasDatos(IXLWorksheet ws, params int[] columnasNumericas)
     {
         foreach (var row in ws.RowsUsed())
         {
-            // Fila de datos válida: ID numérico + número de funcionario informado.
-            if (!row.Cell(1).TryGetValue<int>(out _))
-                continue;
-
+            // Fila de datos válida: número de funcionario informado y
+            // ID numérico, o ID vacío con algún valor numérico (filas agregadas a mano sin ID).
             var numeroFuncionario = row.Cell(2).GetString().Trim();
             if (string.IsNullOrWhiteSpace(numeroFuncionario))
                 continue;
 
-            yield return row;
+            var celdaId = row.Cell(1);
+            var esDato = celdaId.TryGetValue<int>(out _)
+                || (celdaId.IsEmpty() && columnasNumericas.Any(c => !row.Cell(c).IsEmpty() && row.Cell(c).TryGetValue<decimal>(out _)));
+
+            if (esDato)
+                yield return row;
         }
     }
 
-    private static IEnumerable<IXLRow> FilasDatosPagos(IXLWorksheet ws)
-    {
-        foreach (var row in ws.RowsUsed())
-        {
-            // Fila de datos válida: ID numérico + número de funcionario informado.
-            if (!row.Cell(1).TryGetValue<int>(out _))
-                continue;
-
-            var numeroFuncionario = row.Cell(2).GetString().Trim();
-            if (string.IsNullOrWhiteSpace(numeroFuncionario))
-                continue;
-
-            yield return row;
-        }
-    }
-
-    private static FileStream AbrirArchivoExcelParaLectura(string filePath)
+    internal static FileStream AbrirArchivoExcelParaLectura(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             throw new ArgumentException("La ruta del archivo es requerida.", nameof(filePath));

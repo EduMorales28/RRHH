@@ -67,6 +67,7 @@ public partial class App : Avalonia.Application
             {
                 var db = scope.ServiceProvider.GetRequiredService<BarracaDbContext>();
                 db.Database.EnsureCreated();
+                EsquemaBase.ActualizarAsync(db).GetAwaiter().GetResult();
             }
 
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

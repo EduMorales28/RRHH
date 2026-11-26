@@ -6,6 +6,28 @@ namespace Barraca.RRHH.Infrastructure.Helpers;
 
 public static class TipoObraParser
 {
+    // Texto con el que se guarda y se muestra cada tipo (igual que en las planillas).
+    public static string Texto(TipoObra tipo) => tipo switch
+    {
+        TipoObra.Construccion => "CONSTRUCCION",
+        TipoObra.IndustriaYComercio => "INDUSTRIA Y COMERCIO",
+        TipoObra.Administracion => "ADMINISTRACION",
+        TipoObra.Metalurgica => "METALURGICA",
+        _ => "N-A"
+    };
+
+    // Indica si el texto corresponde a un tipo conocido; Parse devuelve N-A para cualquier texto desconocido.
+    public static bool EsReconocido(string? value)
+    {
+        var normalized = NormalizarTexto(value);
+        return normalized.StartsWith("ADMINISTRACION", StringComparison.Ordinal)
+            || normalized.StartsWith("METALURG", StringComparison.Ordinal)
+            || normalized is "REDPAGOS" or "REDPAGO"
+                or "CONSTRUCCION" or "CONSTRUCCIONES"
+                or "INDUSTRIA Y COMERCIO" or "INDUSTRIAYCOMERCIO" or "IND Y COM" or "IND COM" or "INDUSTRIA COMERCIO"
+                or "NA" or "N A";
+    }
+
     public static TipoObra Parse(string? value)
     {
         var normalized = NormalizarTexto(value);
@@ -15,6 +37,9 @@ public static class TipoObraParser
 
         if (normalized is "REDPAGOS" or "REDPAGO")
             return TipoObra.Construccion;
+
+        if (normalized.StartsWith("METALURG", StringComparison.Ordinal))
+            return TipoObra.Metalurgica;
 
         return normalized switch
         {

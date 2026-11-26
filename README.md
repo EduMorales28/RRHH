@@ -115,23 +115,29 @@ La app macOS se abre como aplicación gráfica normal (`.app`) desde Finder.
 ## Nota de red detectada en este equipo
 En este Mac hubo errores SSL al descargar el SDK desde `builds.dotnet.microsoft.com`, por eso no fue posible compilar localmente durante esta sesión. La alternativa inmediata es usar el workflow de GitHub Actions que ya quedó agregado.
 
-## Flujo recomendado
-1. Crear base en SQL Server.
-2. Ejecutar `sql/01_schema.sql`.
-3. Ajustar cadena de conexión en `src/Barraca.RRHH.App/appsettings.json`.
-4. Abrir `Barraca.RRHH.sln`.
-5. Restaurar paquetes NuGet.
-6. Ejecutar la app.
-7. Importar en este orden: Funcionarios, Obras, Horas, Pagos.
-8. Calcular distribución.
-9. Generar reportes PDF.
+## Sueldos Almirtaun (app Windows)
+El programa se llama **Sueldos Almirtaun**. Se publica en una carpeta autónoma con `Sueldos Almirtaun.exe` y guarda sus datos en `%LOCALAPPDATA%\Sueldos Almirtaun`. La primera vez copia los datos de la carpeta anterior `BarracaRRHH`, que no se modifica. Los proyectos del código siguen llamándose `Barraca.RRHH.*`.
 
-## Regla oficial de distribución
-Para cada período y tipo de obra:
-- `CostoTotalTipoObra = suma(TotalGenerado)` del tipo de obra
-- `HorasTotalesTipoObra = suma(HorasEquivalentes)` del tipo de obra
-- `MontoLinea = (HorasLinea / HorasTotalesTipoObra) * CostoTotalTipoObra`
-- `ValorHora = MontoLinea / HorasLinea`
-- `Jornales = HorasLinea / 8.8`
+## Flujo mensual (desde octubre 2026)
+Todo se carga dentro del programa; la importación de Excel queda como respaldo.
+1. **Nuevo mes**: crea el período copiando las filas del mes anterior (funcionarios, tipo de obra, obras, observaciones) con montos y horas en 0.
+2. **Funcionarios / Obras**: altas y cambios en sus pestañas. Los números ya guardados no se cambian; las bajas se hacen destildando Activo/Activa. Cada funcionario queda con una sola cuenta bancaria activa.
+3. **Pagos del mes**: adelanto, líquido y retención (se puede pegar desde Excel con Ctrl+V). Nombre, tipo de pago y total se completan solos.
+4. **Horas del mes**: horas comunes y extras por obra. Horas equivalentes = comunes + 2 × extras.
+5. **Revisar horas vs pagos**: muestra funcionarios con horas y sin pagos (o al revés) y tipos de obra que no coinciden. Las filas en 0 no cuentan.
+6. **Reportes**: "PDFs de pagos" solo usa pagos. "Todos los PDFs" revisa los cruces y recalcula la distribución antes de generar.
+7. **Cerrar el período** en la pestaña Períodos: queda protegido (no se pueden guardar ni importar horas o pagos, ni recalcular la distribución). Se puede reabrir.
 
-La suma de todas las líneas distribuidas de un tipo de obra debe coincidir con el costo total RRHH de ese tipo.
+Protecciones:
+- Guardar o importar horas/pagos descarta la distribución guardada del período (se recalcula al generar los reportes).
+- Ver otro período no cambia su estado; los períodos solo se cierran o reabren a mano.
+- Al abrir el programa se guarda una copia diaria de la base en `%LOCALAPPDATA%\Sueldos Almirtaun\respaldos` (se conservan 30). "Borrar TODOS los datos" guarda una copia antes de borrar.
+- La variable de entorno `BARRACA_RRHH_DATA_DIR` permite abrir el programa contra otra carpeta de datos (para pruebas).
+
+## Regla de distribución (implementada)
+Para cada funcionario y tipo de obra:
+- `CostoFuncionarioTipo = suma(Adelanto + Líquido + Retención)` de sus pagos de ese tipo.
+- Se reparte entre sus obras de ese tipo en proporción a sus horas equivalentes.
+- Los funcionarios de categoría "administrativo" se cargan a la obra activa cuyo nombre contiene "SEDE" del tipo correspondiente (Construcción, Industria y Comercio, N-A).
+- Las líneas se agrupan por tipo, obra y categoría; se redondea a 2 decimales y el ajuste de redondeo se hace dentro de cada tipo, de modo que cada tipo cuadra exactamente con sus pagos.
+- `ValorHora = MontoLinea / HorasLinea`; `Jornales = HorasLinea / 8.8`.

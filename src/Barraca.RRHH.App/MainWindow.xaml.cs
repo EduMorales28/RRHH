@@ -20,11 +20,15 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Barraca.RRHH.App.Helpers.VentanaHelper.AjustarAPantalla(this);
+        Barraca.RRHH.App.Helpers.VentanaHelper.CentrarEnPantalla(this);
+        WindowState = WindowState.Maximized;
+        HabilitarCarga();
     }
 
     private void CerrarApp_Click(object sender, RoutedEventArgs e)
     {
-        System.Windows.Application.Current.Shutdown();
+        Close();
     }
 
     public async void ClearAuditIncidents_Click(object sender, RoutedEventArgs e)
@@ -353,6 +357,8 @@ public partial class MainWindow : Window
             using var scope = sp.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<BarracaDbContext>();
 
+            var copia = await Barraca.RRHH.App.Helpers.RespaldoBase.CopiaAhoraAsync(db, "antes_de_borrar_todo");
+
             // Delete in FK-safe order: children first, then parents
             await using var tx = await db.Database.BeginTransactionAsync();
             try
@@ -376,10 +382,11 @@ public partial class MainWindow : Window
             }
 
             if (DataContext is MainViewModel vm)
-                await vm.CargarTablasAsyncPublic();
+                await vm.RecargarTodoAsync();
 
             MessageBox.Show(
-                "Todos los datos han sido eliminados.\nPuede comenzar a cargar información nueva.",
+                "Todos los datos han sido eliminados.\nPuede comenzar a cargar información nueva." +
+                (copia is null ? string.Empty : $"\n\nSe guardó una copia de la base anterior en:\n{copia}"),
                 "Datos eliminados",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);

@@ -20,6 +20,7 @@ public partial class ErroresConsistenciaWindow : Window
     public ErroresConsistenciaWindow(IConsistenciaService consistenciaService, string periodo, string usuario, string operacion)
     {
         InitializeComponent();
+        Barraca.RRHH.App.Helpers.VentanaHelper.AjustarAPantalla(this);
         DataContext = this;
 
         _consistenciaService = consistenciaService;
