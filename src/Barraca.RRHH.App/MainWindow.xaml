@@ -120,7 +120,8 @@
                                 <TextBlock Margin="0,0,0,8" TextWrapping="Wrap"><Run FontWeight="Bold" Text="3. Pagos del mes: "/><Run Text="complete adelanto, líquido y retención (se puede escribir o pegar desde Excel con Ctrl+V). Guarde."/></TextBlock>
                                 <TextBlock Margin="0,0,0,8" TextWrapping="Wrap"><Run FontWeight="Bold" Text="4. Horas del mes: "/><Run Text="complete horas comunes y extras por obra. Guarde. Use 'Revisar horas vs pagos' para ver diferencias."/></TextBlock>
                                 <TextBlock Margin="0,0,0,8" TextWrapping="Wrap"><Run FontWeight="Bold" Text="5. Reportes: "/><Run Text="genere los PDF. La distribución por obra se recalcula sola con los datos guardados."/></TextBlock>
-                                <TextBlock Margin="0,0,0,8" TextWrapping="Wrap"><Run FontWeight="Bold" Text="6. Cerrar el mes: "/><Run Text="en la pestaña Períodos, cuando todo esté pago. Queda protegido contra cambios."/></TextBlock>
+                                <TextBlock Margin="0,0,0,8" TextWrapping="Wrap"><Run FontWeight="Bold" Text="6. BPS por obra: "/><Run Text="cargue el total de cada factura del BPS y la tasa de la Sede, revise el reparto y descargue la planilla para cargar en SP."/></TextBlock>
+                                <TextBlock Margin="0,0,0,8" TextWrapping="Wrap"><Run FontWeight="Bold" Text="7. Cerrar el mes: "/><Run Text="en la pestaña Períodos, cuando todo esté pago. Queda protegido contra cambios."/></TextBlock>
                                 <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Foreground="#6B7280"
                                            Text="Colores en las tablas: rojo = error (no deja guardar) · amarillo = aviso · azul = cambio sin guardar. Celdas grises = se completan solas."/>
                             </StackPanel>
@@ -167,6 +168,7 @@
                             <DataGridTextColumn Header="Líquido" Binding="{Binding Liquido, Converter={StaticResource Numero}, ValidatesOnExceptions=True}" Width="105" ElementStyle="{StaticResource CeldaNumero}"/>
                             <DataGridTextColumn Header="Retención" Binding="{Binding Retencion, Converter={StaticResource Numero}, ValidatesOnExceptions=True}" Width="105" ElementStyle="{StaticResource CeldaNumero}"/>
                             <DataGridTextColumn Header="Total" Binding="{Binding Total, Mode=OneWay, Converter={StaticResource Numero}}" Width="110" IsReadOnly="True" ElementStyle="{StaticResource CeldaNumero}" CellStyle="{StaticResource CeldaCalculada}"/>
+                            <DataGridTextColumn Header="Nominal ábaco" Binding="{Binding Nominal, Mode=OneWay, Converter={StaticResource Numero}}" Width="105" IsReadOnly="True" ElementStyle="{StaticResource CeldaNumero}" CellStyle="{StaticResource CeldaCalculada}"/>
                             <DataGridTextColumn Header="Pago por" Binding="{Binding TipoPago, Mode=OneWay}" Width="80" IsReadOnly="True" CellStyle="{StaticResource CeldaCalculada}"/>
                             <DataGridTextColumn Header="Observación" Binding="{Binding Observacion}" Width="110"/>
                             <DataGridTextColumn Header="Cliente (Adm.)" Binding="{Binding Cliente}" Width="110"/>
@@ -376,6 +378,138 @@
                             <DataGridTextColumn Header="Monto" Binding="{Binding MontoLinea, StringFormat={}{0:N2}}" Width="120"/>
                         </DataGrid.Columns>
                     </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ============================================================ BPS POR OBRA -->
+            <TabItem Header="BPS por obra">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <WrapPanel>
+                        <Button Content="💾 Guardar facturas" Command="{Binding GuardarBpsCommand}" IsEnabled="{Binding BpsPuedeEditar}" Style="{StaticResource BotonPrincipal}"/>
+                        <Button Content="▶ Calcular reparto" Command="{Binding CalcularBpsCommand}" Style="{StaticResource BotonPrincipal}" Background="#16324F"/>
+                        <Button Content="📊 Planilla para SP (Excel)" Command="{Binding PlanillaSpBpsCommand}" Style="{StaticResource BotonBarra}"
+                                ToolTip="Arma el Excel con una factura BPS por obra, como se cargaba en SP. El programa no escribe en SP."/>
+                        <TextBlock Foreground="#6B7280" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="700" Margin="8,0,0,8"
+                                   Text="Cargue el total de cada factura del BPS tal cual se paga y la tasa de la Sede. El programa separa la Sede y reparte el resto entre las obras por sus horas equivalentes."/>
+                    </WrapPanel>
+                    <Border Grid.Row="1" Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,0,8"
+                            Visibility="{Binding PeriodoCerrado, Converter={StaticResource BoolAVisible}}">
+                        <TextBlock Text="Este período está cerrado: las facturas no se pueden cambiar. El reparto y la planilla para SP se pueden ver y generar igual." TextWrapping="Wrap"/>
+                    </Border>
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="440"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Background="White" BorderBrush="#D1D5DB" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Facturas del BPS del mes" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <StackPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                                    <WrapPanel>
+                                        <Button Content="➕ Agregar factura" Command="{Binding AgregarFacturaBpsCommand}" IsEnabled="{Binding BpsPuedeEditar}" Style="{StaticResource BotonBarra}"/>
+                                        <Button Content="Quitar la seleccionada" Command="{Binding QuitarFacturaBpsCommand}" IsEnabled="{Binding BpsPuedeEditar}" Style="{StaticResource BotonBarra}"/>
+                                    </WrapPanel>
+                                    <TextBlock Text="{Binding BpsTotales}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Tasa BPS de la Sede (%)" FontWeight="SemiBold"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <TextBox Text="{Binding TasaSedeTexto, UpdateSourceTrigger=PropertyChanged}" Width="110" Height="28" VerticalContentAlignment="Center"
+                                                 IsEnabled="{Binding BpsPuedeEditar}"/>
+                                        <TextBlock Text="{Binding BpsTasaNota}" Foreground="#B45309" VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" MaxWidth="290"/>
+                                    </StackPanel>
+                                    <TextBlock Foreground="#6B7280" TextWrapping="Wrap" Margin="0,6,0,0"
+                                               Text="Es la suma, concepto por concepto de la factura de IyC, de descuento ÷ monto gravado (39,656 % en 2025). BPS de la Sede = nominal de ábaco de cada administrativo × tasa."/>
+                                    <TextBlock Foreground="#6B7280" TextWrapping="Wrap" Margin="0,6,0,0"
+                                               Text="Un importe vacío queda pendiente: no se toma como cero y no se reparte nada hasta completarlo o quitar la factura."/>
+                                </StackPanel>
+                                <DataGrid ItemsSource="{Binding FacturasBps}" SelectedItem="{Binding FacturaBpsSeleccionada}" Style="{StaticResource TablaCarga}" RowStyle="{x:Null}"
+                                          IsReadOnly="{Binding PeriodoCerrado}" CanUserAddRows="False" CanUserDeleteRows="False">
+                                    <DataGrid.Columns>
+                                        <DataGridComboBoxColumn Header="Empresa" Width="150" ItemsSource="{x:Static carga:OpcionesBps.Empresas}"
+                                                                SelectedItemBinding="{Binding Empresa, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <DataGridTextColumn Header="Factura" Binding="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe, Converter={StaticResource Numero}, ValidatesOnExceptions=True}" Width="110" ElementStyle="{StaticResource CeldaNumero}"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </Border>
+
+                        <Grid Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Background="White" BorderBrush="#D1D5DB" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,8">
+                                <TextBlock Text="{Binding BpsResumen}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" LineHeight="22"/>
+                            </Border>
+                            <Border Grid.Row="1" Background="#FEE2E2" BorderBrush="#F87171" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,8"
+                                    Visibility="{Binding BpsHayProblemas, Converter={StaticResource BoolAVisible}}">
+                                <StackPanel>
+                                    <TextBlock Text="Para resolver antes de repartir" FontWeight="Bold" Foreground="#7F1D1D" Margin="0,0,0,4"/>
+                                    <ItemsControl ItemsSource="{Binding BpsProblemas}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate><TextBlock Text="{Binding StringFormat=• {0}}" Foreground="#7F1D1D" TextWrapping="Wrap" Margin="0,1"/></DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Row="2" Background="#FEF9C3" BorderBrush="#EAB308" BorderThickness="1" CornerRadius="8" Padding="10" Margin="0,0,0,8"
+                                    Visibility="{Binding BpsHayAvisos, Converter={StaticResource BoolAVisible}}">
+                                <ItemsControl ItemsSource="{Binding BpsAvisos}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate><TextBlock Text="{Binding StringFormat=• {0}}" Foreground="#713F12" TextWrapping="Wrap" Margin="0,1"/></DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                            <TabControl Grid.Row="3">
+                                <TabItem Header="Reparto por obra">
+                                    <DataGrid ItemsSource="{Binding BpsLineas}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#E5E7EB">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="130"/>
+                                            <DataGridTextColumn Header="N° Obra" Binding="{Binding NumeroObra}" Width="80"/>
+                                            <DataGridTextColumn Header="Obra" Binding="{Binding NombreObra}" Width="*"/>
+                                            <DataGridTextColumn Header="Horas equiv." Binding="{Binding Horas, StringFormat={}{0:N2}}" Width="100" ElementStyle="{StaticResource CeldaNumero}"/>
+                                            <DataGridTextColumn Header="% de su tipo" Binding="{Binding Porcentaje, StringFormat={}{0:P2}}" Width="100" ElementStyle="{StaticResource CeldaNumero}"/>
+                                            <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat={}{0:N2}}" Width="120" ElementStyle="{StaticResource CeldaNumero}"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </TabItem>
+                                <TabItem Header="Facturas para SP">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Bottom" Foreground="#6B7280" TextWrapping="Wrap" Margin="0,6,0,0"
+                                                   Text="Como se cargaba el BPS en SP hasta octubre de 2025: proveedor BPS, a crédito sin IVA, una factura por obra con Construcción e IyC sumados, insumo BPS × 1, imputada a la obra sin remito. La Sede va al depósito GASTOS2. Antes de cargar, revise que el mes no esté ya cargado en SP."/>
+                                        <DataGrid ItemsSource="{Binding BpsFacturasSp}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#E5E7EB">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Número" Binding="{Binding Numero}" Width="120"/>
+                                                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat={}{0:dd/MM/yyyy}}" Width="90"/>
+                                                <DataGridTextColumn Header="Imputada a" Binding="{Binding Destino}" Width="190"/>
+                                                <DataGridTextColumn Header="Obra" Binding="{Binding Observacion}" Width="*"/>
+                                                <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat={}{0:N2}}" Width="120" ElementStyle="{StaticResource CeldaNumero}"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </DockPanel>
+                                </TabItem>
+                                <TabItem Header="Sede">
+                                    <DataGrid ItemsSource="{Binding BpsSede}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#E5E7EB">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="N° Func." Binding="{Binding NumeroFuncionario}" Width="80"/>
+                                            <DataGridTextColumn Header="Funcionario" Binding="{Binding Nombre}" Width="*"/>
+                                            <DataGridTextColumn Header="Nominal ábaco" Binding="{Binding Nominal, StringFormat={}{0:N2}}" Width="120" ElementStyle="{StaticResource CeldaNumero}"/>
+                                            <DataGridTextColumn Header="BPS" Binding="{Binding Bps, StringFormat={}{0:N2}}" Width="120" ElementStyle="{StaticResource CeldaNumero}"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </TabItem>
+                            </TabControl>
+                        </Grid>
+                    </Grid>
                 </Grid>
             </TabItem>
 

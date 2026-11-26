@@ -48,7 +48,7 @@ public partial class MainViewModel
         : $"{PeriodoCargado} · abierto";
 
     public bool HayCambiosSinGuardar =>
-        Pagos.HayCambios || Horas.HayCambios || FuncionariosEdicion.HayCambios || ObrasEdicion.HayCambios;
+        Pagos.HayCambios || Horas.HayCambios || FuncionariosEdicion.HayCambios || ObrasEdicion.HayCambios || BpsHayCambios;
 
     private void InicializarCarga(ICargaMensualService cargaMensualService, IPlanillaAbacoService planillaAbacoService, IPlanillaHorasService planillaHorasService)
     {
@@ -85,6 +85,7 @@ public partial class MainViewModel
         Pagos.SoloLectura = Horas.SoloLectura = info is null || info.Cerrado;
         await Pagos.CargarAsync(PeriodoCargado);
         await Horas.CargarAsync(PeriodoCargado);
+        await CargarBpsAsync();
     }
 
     private async Task SeleccionarPeriodoAsync(string codigo)
@@ -240,6 +241,7 @@ public partial class MainViewModel
         if (Horas.HayCambios) tablas.Add("Horas del mes");
         if (FuncionariosEdicion.HayCambios) tablas.Add("Funcionarios");
         if (ObrasEdicion.HayCambios) tablas.Add("Obras");
+        if (BpsHayCambios) tablas.Add("BPS por obra");
 
         var respuesta = MessageBox.Show(
             $"Hay cambios sin guardar en: {string.Join(", ", tablas)}.\n\n¿Guardarlos ahora?\n\nSí: guardar   ·   No: descartarlos   ·   Cancelar: volver",
@@ -264,6 +266,7 @@ public partial class MainViewModel
             Horas.RecalcularTodas();
             if (Pagos.HayCambios) Status = await Pagos.GuardarAsync(PeriodoCargado, "admin");
             if (Horas.HayCambios) Status = await Horas.GuardarAsync(PeriodoCargado, "admin");
+            if (BpsHayCambios) Status = await GuardarBpsInternoAsync();
             await CargarDashboardAsync();
             await CargarTablasAsync();
             return true;

@@ -38,6 +38,7 @@ public partial class MainViewModel : ViewModelBase
         ICargaMensualService cargaMensualService,
         IPlanillaAbacoService planillaAbacoService,
         IPlanillaHorasService planillaHorasService,
+        IDistribucionBpsService distribucionBpsService,
         BarracaDbContext db)
     {
         _dashboardService = dashboardService;
@@ -49,6 +50,7 @@ public partial class MainViewModel : ViewModelBase
         _revisionPlanillaService = revisionPlanillaService;
         _db = db;
         InicializarCarga(cargaMensualService, planillaAbacoService, planillaHorasService);
+        InicializarBps(distribucionBpsService);
 
         ImportarFuncionariosCommand = new AsyncRelayCommand(() => ImportarAsync("FUNCIONARIOS"));
         ImportarObrasCommand = new AsyncRelayCommand(() => ImportarAsync("OBRAS"));

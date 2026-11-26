@@ -275,6 +275,7 @@ public sealed class PagosMesViewModel : TablaCargaViewModel<PagoFila>
                 fila.Adelanto = abaco.Adelanto;
                 fila.Liquido = abaco.Liquido;
                 fila.Retencion = abaco.Retencion;
+                fila.Nominal = abaco.Fila.Nominal;
                 tocadas.Add(fila);
                 i++;
             }

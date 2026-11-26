@@ -42,6 +42,8 @@ public class PagoEdicionDto
     public decimal Liquido { get; set; }
     public decimal Retencion { get; set; }
     public string Observacion { get; set; } = string.Empty;
+    // Nominal de la planilla de ábaco; no se edita a mano.
+    public decimal Nominal { get; set; }
 }
 
 public class HoraEdicionDto

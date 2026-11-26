@@ -372,6 +372,8 @@ public partial class MainWindow : Window
                 await db.Database.ExecuteSqlRawAsync("DELETE FROM Obras");
                 await db.Database.ExecuteSqlRawAsync("DELETE FROM AuditoriaEventos");
                 await db.Database.ExecuteSqlRawAsync("DELETE FROM IncidenciasImportacion");
+                await db.Database.ExecuteSqlRawAsync("DELETE FROM FacturasBps");
+                await db.Database.ExecuteSqlRawAsync("DELETE FROM BpsPeriodos");
                 await db.Database.ExecuteSqlRawAsync("DELETE FROM Periodos");
                 await tx.CommitAsync();
             }

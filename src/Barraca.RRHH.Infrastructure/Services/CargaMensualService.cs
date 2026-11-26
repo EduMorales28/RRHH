@@ -267,7 +267,8 @@ public class CargaMensualService : ICargaMensualService
                 Adelanto = x.Adelanto,
                 Liquido = x.Liquido,
                 Retencion = x.Retencion,
-                Observacion = x.Observacion
+                Observacion = x.Observacion,
+                Nominal = x.Nominal
             })
             .ToListAsync();
     }
@@ -323,6 +324,7 @@ public class CargaMensualService : ICargaMensualService
                 entidad.Liquido = dto.Liquido;
                 entidad.Retencion = dto.Retencion;
                 entidad.TotalGenerado = dto.Adelanto + dto.Liquido + dto.Retencion;
+                entidad.Nominal = dto.Nominal;
                 entidad.TipoPago = dto.TipoObra == TipoObra.NA ? "Efectivo" : "RedPagos";
                 entidad.Observacion = (dto.Observacion ?? string.Empty).Trim();
             }

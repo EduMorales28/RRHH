@@ -40,6 +40,29 @@ public static class EsquemaBase
                 "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_CodigosAbaco_TipoObra_Codigo\" ON \"CodigosAbaco\" (\"TipoObra\", \"Codigo\")");
             await db.Database.ExecuteSqlRawAsync(
                 "CREATE INDEX IF NOT EXISTS \"IX_CodigosAbaco_FuncionarioId\" ON \"CodigosAbaco\" (\"FuncionarioId\")");
+
+            // BPS por obra (26/11/2026): nominal de ábaco en cada pago, facturas BPS del mes y tasa de la Sede.
+            await AgregarColumnaSqliteAsync(db, "PagosMensuales", "Nominal", "TEXT NOT NULL DEFAULT '0.0'");
+            await db.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE IF NOT EXISTS "FacturasBps" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_FacturasBps" PRIMARY KEY AUTOINCREMENT,
+                    "PeriodoId" INTEGER NOT NULL,
+                    "TipoObra" INTEGER NOT NULL,
+                    "Descripcion" TEXT NOT NULL,
+                    "Importe" TEXT NOT NULL,
+                    CONSTRAINT "FK_FacturasBps_Periodos_PeriodoId" FOREIGN KEY ("PeriodoId") REFERENCES "Periodos" ("Id") ON DELETE CASCADE)
+                """);
+            await db.Database.ExecuteSqlRawAsync(
+                "CREATE INDEX IF NOT EXISTS \"IX_FacturasBps_PeriodoId\" ON \"FacturasBps\" (\"PeriodoId\")");
+            await db.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE IF NOT EXISTS "BpsPeriodos" (
+                    "Id" INTEGER NOT NULL CONSTRAINT "PK_BpsPeriodos" PRIMARY KEY AUTOINCREMENT,
+                    "PeriodoId" INTEGER NOT NULL,
+                    "TasaSede" TEXT NOT NULL,
+                    CONSTRAINT "FK_BpsPeriodos_Periodos_PeriodoId" FOREIGN KEY ("PeriodoId") REFERENCES "Periodos" ("Id") ON DELETE CASCADE)
+                """);
+            await db.Database.ExecuteSqlRawAsync(
+                "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_BpsPeriodos_PeriodoId\" ON \"BpsPeriodos\" (\"PeriodoId\")");
             return;
         }
 
@@ -78,6 +101,26 @@ public static class EsquemaBase
                         Codigo nvarchar(50) NOT NULL,
                         FuncionarioId int NOT NULL CONSTRAINT FK_CodigosAbaco_Funcionarios_FuncionarioId REFERENCES Funcionarios (Id) ON DELETE CASCADE);
                     CREATE UNIQUE INDEX IX_CodigosAbaco_TipoObra_Codigo ON CodigosAbaco (TipoObra, Codigo);
+                END
+                IF COL_LENGTH('PagosMensuales', 'Nominal') IS NULL
+                    ALTER TABLE PagosMensuales ADD Nominal decimal(18,2) NOT NULL CONSTRAINT DF_PagosMensuales_Nominal DEFAULT 0;
+                IF OBJECT_ID('FacturasBps') IS NULL
+                BEGIN
+                    CREATE TABLE FacturasBps (
+                        Id int IDENTITY(1,1) NOT NULL CONSTRAINT PK_FacturasBps PRIMARY KEY,
+                        PeriodoId int NOT NULL CONSTRAINT FK_FacturasBps_Periodos_PeriodoId REFERENCES Periodos (Id) ON DELETE CASCADE,
+                        TipoObra int NOT NULL,
+                        Descripcion nvarchar(200) NOT NULL,
+                        Importe decimal(18,2) NOT NULL);
+                    CREATE INDEX IX_FacturasBps_PeriodoId ON FacturasBps (PeriodoId);
+                END
+                IF OBJECT_ID('BpsPeriodos') IS NULL
+                BEGIN
+                    CREATE TABLE BpsPeriodos (
+                        Id int IDENTITY(1,1) NOT NULL CONSTRAINT PK_BpsPeriodos PRIMARY KEY,
+                        PeriodoId int NOT NULL CONSTRAINT FK_BpsPeriodos_Periodos_PeriodoId REFERENCES Periodos (Id) ON DELETE CASCADE,
+                        TasaSede decimal(18,6) NOT NULL);
+                    CREATE UNIQUE INDEX IX_BpsPeriodos_PeriodoId ON BpsPeriodos (PeriodoId);
                 END
                 """);
         }

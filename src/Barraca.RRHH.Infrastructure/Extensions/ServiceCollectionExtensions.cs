@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPlanillaAbacoService, PlanillaAbacoService>();
         services.AddScoped<IPlanillaHorasService, PlanillaHorasService>();
         services.AddScoped<IDistribucionService, DistribucionService>();
+        services.AddScoped<IDistribucionBpsService, DistribucionBpsService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IPeriodoService, PeriodoService>();
         services.AddScoped<IConsistenciaService, ConsistenciaService>();

@@ -20,6 +20,8 @@ public class BarracaDbContext : DbContext
     public DbSet<CodigoAbaco> CodigosAbaco => Set<CodigoAbaco>();
     public DbSet<CodigoHoras> CodigosHoras => Set<CodigoHoras>();
     public DbSet<ObraHoras> ObrasHoras => Set<ObraHoras>();
+    public DbSet<FacturaBps> FacturasBps => Set<FacturaBps>();
+    public DbSet<BpsPeriodo> BpsPeriodos => Set<BpsPeriodo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -129,6 +131,19 @@ public class BarracaDbContext : DbContext
             entity.HasIndex(x => new { x.TipoObra, x.Nombre }).IsUnique();
             entity.Property(x => x.Nombre).HasMaxLength(200);
             entity.HasOne(x => x.Obra).WithMany().HasForeignKey(x => x.ObraId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FacturaBps>(entity =>
+        {
+            entity.Property(x => x.Descripcion).HasMaxLength(200);
+            entity.HasIndex(x => x.PeriodoId);
+            entity.HasOne(x => x.Periodo).WithMany().HasForeignKey(x => x.PeriodoId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BpsPeriodo>(entity =>
+        {
+            entity.HasIndex(x => x.PeriodoId).IsUnique();
+            entity.HasOne(x => x.Periodo).WithMany().HasForeignKey(x => x.PeriodoId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<IncidenciaImportacion>(entity =>

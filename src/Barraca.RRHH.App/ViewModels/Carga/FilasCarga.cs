@@ -125,6 +125,7 @@ public sealed class PagoFila : FilaEdicionBase
     private decimal _liquido;
     private decimal _retencion;
     private string _observacion = string.Empty;
+    private decimal _nominal;
 
     public string NumeroFuncionario { get => _numeroFuncionario; set => Editar(ref _numeroFuncionario, (value ?? string.Empty).Trim()); }
     public string TipoObraTexto { get => _tipoObraTexto; set => Editar(ref _tipoObraTexto, value ?? string.Empty); }
@@ -133,6 +134,8 @@ public sealed class PagoFila : FilaEdicionBase
     public decimal Liquido { get => _liquido; set => Editar(ref _liquido, value); }
     public decimal Retencion { get => _retencion; set => Editar(ref _retencion, value); }
     public string Observacion { get => _observacion; set => Editar(ref _observacion, value ?? string.Empty); }
+    // Nominal de la planilla de ábaco: lo completa "Cargar planilla ábaco" y se usa para el BPS de la Sede.
+    public decimal Nominal { get => _nominal; set => Editar(ref _nominal, value); }
 
     public string Nombre => CatalogoMaestros.Actual.Funcionario(NumeroFuncionario)?.Nombre ?? string.Empty;
     public decimal Total => Adelanto + Liquido + Retencion;
@@ -187,6 +190,7 @@ public sealed class PagoFila : FilaEdicionBase
             fila.Liquido = dto.Liquido;
             fila.Retencion = dto.Retencion;
             fila.Observacion = dto.Observacion;
+            fila.Nominal = dto.Nominal;
         });
         return fila;
     }
@@ -200,7 +204,8 @@ public sealed class PagoFila : FilaEdicionBase
         Adelanto = Adelanto,
         Liquido = Liquido,
         Retencion = Retencion,
-        Observacion = Observacion
+        Observacion = Observacion,
+        Nominal = Nominal
     };
 }
 
