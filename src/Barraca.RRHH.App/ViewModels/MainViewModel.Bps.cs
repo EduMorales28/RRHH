@@ -223,7 +223,9 @@ public partial class MainViewModel
         var obrasIc = r.Lineas.Count(l => l.TipoObra == TipoObra.IndustriaYComercio);
         BpsResumen = r.Listo
             ? $"Construcción {Pesos(r.FacturadoConstruccion)} entre {obrasC} obras por {r.HorasConstruccion.ToString("#,##0.#", NumeroParser.Cultura)} horas.\n" +
-              $"Industria y Comercio {Pesos(r.FacturadoIndustria)} = Sede {Pesos(r.Sede)} ({r.PersonasSede.Count} personas) + {Pesos(r.ARepartirIndustria)} entre {obrasIc} obras por {r.HorasIndustria.ToString("#,##0.#", NumeroParser.Cultura)} horas.\n" +
+              $"Industria y Comercio {Pesos(r.FacturadoIndustria)} = Sede {Pesos(r.Sede)} ({r.PersonasSede.Count(p => p.NumeroObraDestino == "SEDE")} personas)" +
+              (r.Metalurgica > 0 ? $" + Metalúrgica {Pesos(r.Metalurgica)} ({r.PersonasSede.Count(p => p.NumeroObraDestino != "SEDE")} personas)" : string.Empty) +
+              $" + {Pesos(r.ARepartirIndustria)} entre {obrasIc} obras por {r.HorasIndustria.ToString("#,##0.#", NumeroParser.Cultura)} horas.\n" +
               $"{r.FacturasSp.Count} facturas para SP por {Pesos(r.FacturasSp.Sum(f => f.Importe))} ✓ suma lo facturado."
             : "Falta información para repartir el BPS de este mes. Revise lo que está en rojo.";
         OnPropertyChanged(nameof(BpsHayProblemas));

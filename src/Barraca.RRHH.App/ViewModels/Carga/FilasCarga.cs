@@ -157,6 +157,8 @@ public sealed class PagoFila : FilaEdicionBase
             return ("Elija el tipo de obra.", null);
         if (Adelanto < 0 || Retencion < 0)
             return ("Adelanto o retención negativos.", null);
+        if (Nominal < 0)
+            return ("Nominal negativo.", null);
 
         if (Liquido < 0)
             return (null, "Pago negativo: en RedPagos se descuenta del otro pago del funcionario.");

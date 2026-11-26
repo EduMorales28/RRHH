@@ -168,7 +168,7 @@
                             <DataGridTextColumn Header="Líquido" Binding="{Binding Liquido, Converter={StaticResource Numero}, ValidatesOnExceptions=True}" Width="105" ElementStyle="{StaticResource CeldaNumero}"/>
                             <DataGridTextColumn Header="Retención" Binding="{Binding Retencion, Converter={StaticResource Numero}, ValidatesOnExceptions=True}" Width="105" ElementStyle="{StaticResource CeldaNumero}"/>
                             <DataGridTextColumn Header="Total" Binding="{Binding Total, Mode=OneWay, Converter={StaticResource Numero}}" Width="110" IsReadOnly="True" ElementStyle="{StaticResource CeldaNumero}" CellStyle="{StaticResource CeldaCalculada}"/>
-                            <DataGridTextColumn Header="Nominal ábaco" Binding="{Binding Nominal, Mode=OneWay, Converter={StaticResource Numero}}" Width="105" IsReadOnly="True" ElementStyle="{StaticResource CeldaNumero}" CellStyle="{StaticResource CeldaCalculada}"/>
+                            <DataGridTextColumn Header="Nominal" Binding="{Binding Nominal, Converter={StaticResource Numero}, ValidatesOnExceptions=True}" Width="105" ElementStyle="{StaticResource CeldaNumero}"/>
                             <DataGridTextColumn Header="Pago por" Binding="{Binding TipoPago, Mode=OneWay}" Width="80" IsReadOnly="True" CellStyle="{StaticResource CeldaCalculada}"/>
                             <DataGridTextColumn Header="Observación" Binding="{Binding Observacion}" Width="110"/>
                             <DataGridTextColumn Header="Cliente (Adm.)" Binding="{Binding Cliente}" Width="110"/>
@@ -179,7 +179,7 @@
                         <TextBlock Text="{Binding Pagos.Totales}" FontWeight="SemiBold" FontSize="14"/>
                         <TextBlock Text="{Binding Pagos.Resumen}" Foreground="#475569"/>
                         <TextBlock Foreground="#6B7280" TextWrapping="Wrap" Margin="0,4,0,0"
-                                   Text="Para pegar desde Excel: copie las columnas ADELANTO, LIQUIDO y RETENCION, haga clic en la celda Adelanto de la primera fila y presione Ctrl+V. La última fila en blanco sirve para agregar funcionarios."/>
+                                   Text="Para pegar desde Excel: copie las columnas ADELANTO, LIQUIDO y RETENCION, haga clic en la celda Adelanto de la primera fila y presione Ctrl+V. La última fila en blanco sirve para agregar funcionarios. El Nominal lo completa la planilla de ábaco; a los metalúrgicos, que no vienen en ábaco, escríbaselo a mano (se usa para el BPS por obra)."/>
                     </StackPanel>
                 </Grid>
             </TabItem>
@@ -424,7 +424,7 @@
                                         <TextBlock Text="{Binding BpsTasaNota}" Foreground="#B45309" VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" MaxWidth="290"/>
                                     </StackPanel>
                                     <TextBlock Foreground="#6B7280" TextWrapping="Wrap" Margin="0,6,0,0"
-                                               Text="Es la suma, concepto por concepto de la factura de IyC, de descuento ÷ monto gravado (39,656 % en 2025). BPS de la Sede = nominal de ábaco de cada administrativo × tasa."/>
+                                               Text="Es la suma, concepto por concepto de la factura de IyC, de descuento ÷ monto gravado (39,656 % en 2025). BPS de la Sede = nominal de ábaco de cada administrativo × tasa. Los metalúrgicos van igual, nominal × tasa, a su obra."/>
                                     <TextBlock Foreground="#6B7280" TextWrapping="Wrap" Margin="0,6,0,0"
                                                Text="Un importe vacío queda pendiente: no se toma como cero y no se reparte nada hasta completarlo o quitar la factura."/>
                                 </StackPanel>
@@ -497,12 +497,13 @@
                                         </DataGrid>
                                     </DockPanel>
                                 </TabItem>
-                                <TabItem Header="Sede">
+                                <TabItem Header="Sede y metalúrgicos">
                                     <DataGrid ItemsSource="{Binding BpsSede}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#E5E7EB">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="N° Func." Binding="{Binding NumeroFuncionario}" Width="80"/>
                                             <DataGridTextColumn Header="Funcionario" Binding="{Binding Nombre}" Width="*"/>
-                                            <DataGridTextColumn Header="Nominal ábaco" Binding="{Binding Nominal, StringFormat={}{0:N2}}" Width="120" ElementStyle="{StaticResource CeldaNumero}"/>
+                                            <DataGridTextColumn Header="Va a" Binding="{Binding Destino}" Width="110"/>
+                                            <DataGridTextColumn Header="Nominal" Binding="{Binding Nominal, StringFormat={}{0:N2}}" Width="120" ElementStyle="{StaticResource CeldaNumero}"/>
                                             <DataGridTextColumn Header="BPS" Binding="{Binding Bps, StringFormat={}{0:N2}}" Width="120" ElementStyle="{StaticResource CeldaNumero}"/>
                                         </DataGrid.Columns>
                                     </DataGrid>

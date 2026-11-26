@@ -9,9 +9,13 @@ Pestaña **BPS por obra** de Sueldos Almirtaun, agregada el 26/11/2026. Reparte 
    - Su BPS es el nominal de la planilla de ábaco de cada uno × la tasa de la Sede.
    - La tasa es la suma, concepto por concepto de la factura de IyC, de descuento ÷ monto gravado. En 2025 era 39,656 %.
    - Ese importe se resta del BPS de IyC, y las horas de esas personas no se reparten.
-3. **Construcción.** El total de Construcción se reparte entre las obras por sus horas equivalentes de Construcción: comunes + 2 × extras + lluvia.
-4. **Industria y Comercio.** Lo que queda de IyC se reparte entre las obras por sus horas equivalentes de IyC. Metalúrgica va con IyC, porque los paga la empresa de IyC.
-5. **No entran:** las horas N-A ni las de Administración.
+3. **Metalúrgicos.** Tienen 1 hora de referencia en su obra (9168 METALURGICA), no horas reales. Por decisión del usuario del 26/11/2026, su BPS va como el de la Sede: nominal × la misma tasa, entero a su obra.
+   - Se resta del BPS de IyC, y esa hora no se reparte.
+   - No vienen en ábaco: su nominal se escribe a mano en Pagos del mes, en la columna Nominal.
+   - Si alguien tiene horas en Metalúrgica y también en obras de IyC, todas sus horas van al reparto de IyC.
+4. **Construcción.** El total de Construcción se reparte entre las obras por sus horas equivalentes de Construcción: comunes + 2 × extras + lluvia.
+5. **Industria y Comercio.** Lo que queda de IyC, después de la Sede y los metalúrgicos, se reparte entre las obras por sus horas equivalentes de IyC.
+6. **No entran:** las horas N-A ni las de Administración.
 
 Los importes van al centésimo, y lo que falta por redondeo va a los restos mayores: cada tipo suma exactamente lo facturado. Si falta un dato (una factura sin importe, la tasa o el nominal de alguien de la Sede), no se reparte nada y se muestra qué falta.
 
@@ -35,10 +39,11 @@ El programa no escribe en SP: la planilla se carga a mano.
   - El reparto da igual al centésimo que las facturas BPS cargadas en SP: 144, 139, 147, 149, 156 y 152 (con C e IC sumados).
   - La Sede da 206.058,31, igual que la planilla. En SP se cargó 206.058,51.
 - **Octubre de 2026, sobre una copia de la base:** lo repartido suma exactamente lo facturado en cada tipo.
+- **Los dos metalúrgicos de octubre de 2026:** con nominal 65.608 y 47.629,92, su BPS da 44.905,63 y va entero a la obra 9168.
 
 ## Datos nuevos en la base
 
-- `PagosMensuales.Nominal`: el nominal de ábaco. Lo completa «Cargar planilla ábaco» y se ve en Pagos del mes. Los meses cargados antes del 26/11/2026 lo tienen en 0: hay que volver a cargar la planilla de ábaco de IyC y guardar.
+- `PagosMensuales.Nominal`: el nominal de cada pago. Lo completa «Cargar planilla ábaco», y se puede escribir a mano en Pagos del mes (por ejemplo, el de los metalúrgicos). Los meses cargados antes del 26/11/2026 lo tienen en 0: hay que volver a cargar la planilla de ábaco de IyC y guardar.
 - `FacturasBps`: las facturas BPS de cada mes.
 - `BpsPeriodos`: la tasa de la Sede de cada mes. Si un mes no tiene tasa propia, se sugiere la del último mes anterior que la tenga.
 
@@ -46,6 +51,5 @@ El programa no escribe en SP: la planilla se carga a mano.
 
 ## Pendiente de confirmar
 
-- **Metalúrgica:** sus horas son de referencia (1 h por persona), así que su BPS se reparte sobre todo entre las obras de IyC. Si conviene, se puede calcular como la Sede (nominal × tasa) e imputarlo a su obra.
 - **Números de obra:** los del programa que no existen en SP, como 9168 o 9201, hay que corregirlos en la planilla antes de cargar.
 - **Meses ya cargados en SP:** en SP hay totales de BPS al depósito GASTOS2 (por ejemplo, $524.976 el 25/05/2026). Para no duplicar el gasto, no se carga por obra un mes que ya está en SP como total.

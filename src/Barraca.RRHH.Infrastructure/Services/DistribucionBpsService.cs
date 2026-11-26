@@ -16,6 +16,7 @@ namespace Barraca.RRHH.Infrastructure.Services;
 // - Se reparte el total de cada factura, tal cual se paga.
 // - Horas equivalentes (comunes + 2 × extras + lluvia), las mismas de la distribución de costos.
 // - Sede = nominal de ábaco de cada administrativo × tasa BPS de la factura de IyC.
+// - Metalúrgicos = nominal × la misma tasa, a su obra (tienen 1 hora de referencia, no horas reales).
 // - El programa arma la planilla y no escribe en SP.
 public class DistribucionBpsService : IDistribucionBpsService
 {
@@ -129,10 +130,33 @@ public class DistribucionBpsService : IDistribucionBpsService
             .Select(g => g.Key)
             .ToHashSet();
 
-        var pagosIc = await _db.PagosMensuales.AsNoTracking().Include(x => x.Funcionario)
-            .Where(x => x.PeriodoId == p.Id && x.TipoObra == TipoObra.IndustriaYComercio)
+        // Los metalúrgicos tienen 1 hora de referencia en su obra (Metalúrgica): su BPS va como el de la Sede,
+        // nominal × tasa, directo a esa obra, y esas horas no se reparten (decisión del 26/11/2026).
+        var horasMet = horas.Where(h => h.Obra!.TipoObra == TipoObra.Metalurgica).ToList();
+        var idsMet = horasMet.Select(h => h.FuncionarioId)
+            .Where(id => horas.Where(h => h.FuncionarioId == id && h.Obra!.TipoObra is TipoObra.IndustriaYComercio or TipoObra.Metalurgica)
+                .All(h => h.Obra!.TipoObra == TipoObra.Metalurgica))
+            .ToHashSet();
+
+        var todosLosPagos = await _db.PagosMensuales.AsNoTracking().Include(x => x.Funcionario)
+            .Where(x => x.PeriodoId == p.Id && (x.TipoObra == TipoObra.IndustriaYComercio || x.TipoObra == TipoObra.Metalurgica))
             .ToListAsync();
-        pagosIc = pagosIc.Where(x => !x.Observacion.Contains("TICKET", StringComparison.OrdinalIgnoreCase)).ToList();
+        todosLosPagos = todosLosPagos.Where(x => !x.Observacion.Contains("TICKET", StringComparison.OrdinalIgnoreCase)).ToList();
+        var pagosIc = todosLosPagos.Where(x => x.TipoObra == TipoObra.IndustriaYComercio).ToList();
+
+        var metalurgicos = horasMet.Where(h => idsMet.Contains(h.FuncionarioId))
+            .GroupBy(h => h.FuncionarioId)
+            .Select(g =>
+            {
+                var obra = g.OrderByDescending(h => h.HorasEquivalentes).First().Obra!;
+                return new RepartoBps.PersonaMetalurgica(
+                    g.First().Funcionario?.NumeroFuncionario ?? string.Empty,
+                    g.First().Funcionario?.Nombre ?? g.First().NombreFuncionarioExcel,
+                    todosLosPagos.Where(x => x.FuncionarioId == g.Key).Sum(x => x.Nominal),
+                    obra.NumeroObra,
+                    obra.Nombre);
+            })
+            .ToList();
 
         var sede = horasIc.Where(h => idsSede.Contains(h.FuncionarioId))
             .GroupBy(h => h.FuncionarioId)
@@ -144,6 +168,7 @@ public class DistribucionBpsService : IDistribucionBpsService
 
         var horasReparto = horas
             .Where(h => !(h.Obra!.TipoObra == TipoObra.IndustriaYComercio && idsSede.Contains(h.FuncionarioId)))
+            .Where(h => !(h.Obra!.TipoObra == TipoObra.Metalurgica && idsMet.Contains(h.FuncionarioId)))
             .Select(h => (Tipo: TipoReparto(h.Obra!.TipoObra), h.Obra!, h.HorasEquivalentes))
             .Where(x => x.Tipo is not null)
             .GroupBy(x => (x.Tipo!.Value, x.Item2.Id))
@@ -152,13 +177,10 @@ public class DistribucionBpsService : IDistribucionBpsService
             .OrderBy(x => x.Tipo).ThenBy(x => int.TryParse(x.NumeroObra, out var n) ? n : int.MaxValue).ThenBy(x => x.NumeroObra)
             .ToList();
 
-        var r = RepartoBps.Calcular(codigo, facturas, tasa, horasReparto, sede);
+        var r = RepartoBps.Calcular(codigo, facturas, tasa, horasReparto, sede, metalurgicos);
 
-        if (tasaDe.Length > 0 && sede.Count > 0)
+        if (tasaDe.Length > 0 && (sede.Count > 0 || metalurgicos.Count > 0))
             r.Avisos.Add($"La tasa de la Sede es la de {tasaDe}: confírmela con la factura de IyC de este mes y guarde.");
-        var met = horas.Where(h => h.Obra!.TipoObra == TipoObra.Metalurgica).Sum(h => h.HorasEquivalentes);
-        if (met > 0)
-            r.Avisos.Add($"Metalúrgica: sus {met.ToString("#,##0.##", Uy)} h entran en el reparto de Industria y Comercio (la empresa que les paga).");
         var fuera = horas.Where(h => h.Obra!.TipoObra is TipoObra.NA or TipoObra.Administracion)
             .GroupBy(h => h.Obra!.TipoObra)
             .Select(g => $"{(g.Key == TipoObra.NA ? "N-A" : "Administración")} {g.Sum(h => h.HorasEquivalentes).ToString("#,##0.##", Uy)} h")
@@ -188,7 +210,7 @@ public class DistribucionBpsService : IDistribucionBpsService
         {
             HojaSp(libro.Worksheets.Add("Para SP"), r);
             HojaReparto(libro.Worksheets.Add("Reparto"), r);
-            HojaSede(libro.Worksheets.Add("Sede"), r);
+            HojaSede(libro.Worksheets.Add("Sede y metalúrgicos"), r);
             var facturas = await ObtenerAsync(r.Periodo);
             HojaFacturas(libro.Worksheets.Add("Facturas"), facturas, r);
             libro.SaveAs(ruta);
@@ -265,13 +287,14 @@ public class DistribucionBpsService : IDistribucionBpsService
     private static void HojaReparto(IXLWorksheet ws, RepartoBpsResultadoDto r)
     {
         Titulo(ws, $"Reparto del BPS {r.Periodo} por obra",
-            "Construcción por las horas equivalentes de Construcción. De Industria y Comercio primero sale la Sede y el resto va por las horas de IyC.", 6);
+            "Construcción por las horas equivalentes de Construcción. De Industria y Comercio primero salen la Sede y los metalúrgicos, y el resto va por las horas de IyC.", 6);
         var resumen = new (string, decimal, string)[]
         {
             ("Facturado Construcción", r.FacturadoConstruccion, Numero),
             ("Facturado Industria y Comercio", r.FacturadoIndustria, Numero),
             ("Tasa BPS de la Sede", r.TasaSede, "0.000%"),
             ("Sede (nominal × tasa)", r.Sede, Numero),
+            ("Metalúrgica (nominal × tasa, a su obra)", r.Metalurgica, Numero),
             ("A repartir Construcción", r.ARepartirConstruccion, Numero),
             ("A repartir Industria y Comercio", r.ARepartirIndustria, Numero)
         };
@@ -325,25 +348,26 @@ public class DistribucionBpsService : IDistribucionBpsService
 
     private static void HojaSede(IXLWorksheet ws, RepartoBpsResultadoDto r)
     {
-        Titulo(ws, $"BPS de la Sede {r.Periodo}",
-            $"Nominal de la planilla de ábaco × tasa {r.TasaSede.ToString("P3", Uy)}. Son los administrativos de IyC (con hora en la obra SEDE de IyC).", 4);
-        Encabezado(ws, 4, "N° Func.", "Funcionario", "Nominal", "BPS");
+        Titulo(ws, $"BPS por nominal × tasa {r.Periodo}",
+            $"Nominal × tasa {r.TasaSede.ToString("P3", Uy)}. Sede: los administrativos de IyC (con hora en la obra SEDE de IyC). Metalúrgicos: a su obra.", 5);
+        Encabezado(ws, 4, "N° Func.", "Funcionario", "Va a", "Nominal", "BPS");
         var fila = 5;
         foreach (var p in r.PersonasSede)
         {
             ws.Cell(fila, 1).Value = p.NumeroFuncionario;
             ws.Cell(fila, 2).Value = p.Nombre;
-            ws.Cell(fila, 3).Value = p.Nominal;
-            ws.Cell(fila, 4).Value = p.Bps;
-            ws.Range(fila, 3, fila, 4).Style.NumberFormat.Format = Numero;
+            ws.Cell(fila, 3).Value = p.Destino;
+            ws.Cell(fila, 4).Value = p.Nominal;
+            ws.Cell(fila, 5).Value = p.Bps;
+            ws.Range(fila, 4, fila, 5).Style.NumberFormat.Format = Numero;
             fila++;
         }
 
         ws.Cell(fila, 1).Value = "Total";
-        ws.Cell(fila, 3).Value = r.PersonasSede.Sum(p => p.Nominal);
-        ws.Cell(fila, 4).Value = r.Sede;
-        ws.Range(fila, 3, fila, 4).Style.NumberFormat.Format = Numero;
-        ws.Range(fila, 1, fila, 4).Style.Font.Bold = true;
+        ws.Cell(fila, 4).Value = r.PersonasSede.Sum(p => p.Nominal);
+        ws.Cell(fila, 5).Value = r.Sede + r.Metalurgica;
+        ws.Range(fila, 4, fila, 5).Style.NumberFormat.Format = Numero;
+        ws.Range(fila, 1, fila, 5).Style.Font.Bold = true;
         ws.Columns().AdjustToContents();
     }
 
@@ -389,7 +413,8 @@ public class DistribucionBpsService : IDistribucionBpsService
 
     private static bool EsSede(Obra obra) => obra.Nombre.Contains("SEDE", StringComparison.OrdinalIgnoreCase);
 
-    // Construcción va con Construcción; IyC y Metalúrgica (que paga la empresa de IyC) con IyC; N-A y Administración no entran.
+    // Construcción va con Construcción; IyC con IyC. Metalúrgica también va con IyC (la paga la empresa de IyC), pero solo
+    // las horas de quien además tiene horas en obras de IyC: los metalúrgicos van por nominal × tasa. N-A y Administración no entran.
     private static TipoObra? TipoReparto(TipoObra tipo) => tipo switch
     {
         TipoObra.Construccion => TipoObra.Construccion,

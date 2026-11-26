@@ -3,7 +3,8 @@ using Barraca.RRHH.Domain.Enums;
 namespace Barraca.RRHH.Application.DTOs;
 
 // BPS por obra (pedido del 26/11/2026): las facturas del BPS de Construcción y de Industria y Comercio
-// se reparten entre las obras por horas equivalentes; de IyC antes se separa la Sede (nominal × tasa).
+// se reparten entre las obras por horas equivalentes; de IyC antes se separan la Sede y los metalúrgicos
+// (nominal × tasa).
 
 public class FacturaBpsDto
 {
@@ -38,12 +39,16 @@ public class RepartoBpsLineaDto
     public decimal Importe { get; set; }
 }
 
+// Persona cuyo BPS va por nominal × tasa: administrativos de la Sede y metalúrgicos (a su obra).
 public class SedeBpsPersonaDto
 {
     public string NumeroFuncionario { get; set; } = string.Empty;
     public string Nombre { get; set; } = string.Empty;
     public decimal Nominal { get; set; }
     public decimal Bps { get; set; }
+    // "SEDE" o el número de la obra de los metalúrgicos.
+    public string NumeroObraDestino { get; set; } = "SEDE";
+    public string Destino { get; set; } = "Sede";
 }
 
 // Una factura para cargar en SP: igual que como se cargó el BPS hasta 10/2025
@@ -71,6 +76,8 @@ public class RepartoBpsResultadoDto
     public decimal FacturadoIndustria { get; set; }
     public decimal TasaSede { get; set; }
     public decimal Sede { get; set; }
+    // Metalúrgicos: nominal × tasa, a su obra.
+    public decimal Metalurgica { get; set; }
     public decimal ARepartirConstruccion { get; set; }
     public decimal ARepartirIndustria { get; set; }
     public decimal HorasConstruccion { get; set; }
