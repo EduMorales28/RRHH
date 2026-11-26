@@ -5,10 +5,12 @@ Pestaña **BPS por obra** de Sueldos Almirtaun, agregada el 26/11/2026. Reparte 
 ## Cómo se reparte
 
 1. **Facturas.** Se carga el total de cada factura del BPS de Construcción y de Industria y Comercio, tal cual se paga: nómina, fondos, IRPF y, en IyC, el Fondo Social Metalúrgico.
-2. **Sede.** Son los administrativos de IyC: quienes solo tienen horas de IyC en la obra cuyo nombre contiene «SEDE» (el programa les pone 1 hora ahí).
+2. **Sede.** Son los administrativos de IyC: quienes solo tienen horas de IyC en la obra cuyo nombre contiene «SEDE» y tienen categoría «Administrativo». El programa pone 1 hora en esa obra a quien cobra en IyC sin horas.
    - Su BPS es el nominal de la planilla de ábaco de cada uno × la tasa de la Sede.
    - La tasa es la suma, concepto por concepto de la factura de IyC, de descuento ÷ monto gravado. En 2025 era 39,656 %.
-   - Ese importe se resta del BPS de IyC, y las horas de esas personas no se reparten.
+   - Ese importe se resta del BPS de IyC.
+   - **Quien cobra en IyC sin horas en obras y no es administrativo** (oficiales, peones, maquinistas, sin categoría) no va a la Sede: su BPS queda en el reparto de IyC por horas. Lo decidió el usuario el 26/11/2026; en octubre de 2026 fueron 8 personas. La pestaña los lista en un aviso.
+   - La hora de referencia de la obra SEDE no se reparte, sea o no administrativo.
 3. **Metalúrgicos.** Tienen 1 hora de referencia en su obra (9168 METALURGICA), no horas reales. Por decisión del usuario del 26/11/2026, su BPS va como el de la Sede: nominal × la misma tasa, entero a su obra.
    - Se resta del BPS de IyC, y esa hora no se reparte.
    - No vienen en ábaco: su nominal se escribe a mano en Pagos del mes, en la columna Nominal.
@@ -40,6 +42,13 @@ El programa no escribe en SP: la planilla se carga a mano.
   - La Sede da 206.058,31, igual que la planilla. En SP se cargó 206.058,51.
 - **Octubre de 2026, sobre una copia de la base:** lo repartido suma exactamente lo facturado en cada tipo.
 - **Los dos metalúrgicos de octubre de 2026:** con nominal 65.608 y 47.629,92, su BPS da 44.905,63 y va entero a la obra 9168.
+- **Octubre de 2026 con los datos reales cargados el 26/11:**
+  - Facturas de cargo 10/2026: Construcción 536.416 e IyC 522.735.
+  - Tasa 39,656 %.
+  - Sede de 15 administrativos: 293.610,64.
+  - Metalúrgicos: 44.905,63.
+  - Obras de IyC por horas: 184.218,73.
+  - 17 facturas para SP por 1.059.151.
 
 ## Datos nuevos en la base
 

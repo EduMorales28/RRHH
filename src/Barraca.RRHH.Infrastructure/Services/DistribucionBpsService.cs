@@ -122,13 +122,17 @@ public class DistribucionBpsService : IDistribucionBpsService
             .Where(x => x.PeriodoId == p.Id && x.HorasEquivalentes > 0)
             .ToListAsync();
 
-        // La Sede son los administrativos de IyC: quienes solo tienen horas de IyC en la obra SEDE de IyC
-        // (el programa les pone 1 hora ahí). Su BPS va por nominal × tasa y esas horas no se reparten.
+        // Quien solo tiene horas de IyC en la obra SEDE de IyC tiene la hora de referencia que el programa pone a
+        // quien cobra en IyC sin horas: esa hora no se reparte. De ellos, la Sede son solo los administrativos
+        // (categoría «Administrativo»): su BPS va por nominal × tasa. El de los demás queda en el reparto de IyC
+        // por horas (decisión del usuario, 26/11/2026).
         var horasIc = horas.Where(h => h.Obra!.TipoObra == TipoObra.IndustriaYComercio).ToList();
-        var idsSede = horasIc.GroupBy(h => h.FuncionarioId)
+        var soloEnSede = horasIc.GroupBy(h => h.FuncionarioId)
             .Where(g => g.All(h => EsSede(h.Obra!)))
-            .Select(g => g.Key)
-            .ToHashSet();
+            .ToDictionary(g => g.Key, g => g.First().Funcionario);
+        var idsSede = soloEnSede.Where(x => EsAdministrativo(x.Value)).Select(x => x.Key).ToHashSet();
+        var sinObra = soloEnSede.Where(x => !idsSede.Contains(x.Key))
+            .Select(x => $"{x.Value?.NumeroFuncionario} {x.Value?.Nombre}").OrderBy(x => x, StringComparer.Ordinal).ToList();
 
         // Los metalúrgicos tienen 1 hora de referencia en su obra (Metalúrgica): su BPS va como el de la Sede,
         // nominal × tasa, directo a esa obra, y esas horas no se reparten (decisión del 26/11/2026).
@@ -167,7 +171,7 @@ public class DistribucionBpsService : IDistribucionBpsService
             .ToList();
 
         var horasReparto = horas
-            .Where(h => !(h.Obra!.TipoObra == TipoObra.IndustriaYComercio && idsSede.Contains(h.FuncionarioId)))
+            .Where(h => !(h.Obra!.TipoObra == TipoObra.IndustriaYComercio && soloEnSede.ContainsKey(h.FuncionarioId)))
             .Where(h => !(h.Obra!.TipoObra == TipoObra.Metalurgica && idsMet.Contains(h.FuncionarioId)))
             .Select(h => (Tipo: TipoReparto(h.Obra!.TipoObra), h.Obra!, h.HorasEquivalentes))
             .Where(x => x.Tipo is not null)
@@ -181,6 +185,8 @@ public class DistribucionBpsService : IDistribucionBpsService
 
         if (tasaDe.Length > 0 && (sede.Count > 0 || metalurgicos.Count > 0))
             r.Avisos.Add($"La tasa de la Sede es la de {tasaDe}: confírmela con la factura de IyC de este mes y guarde.");
+        if (sinObra.Count > 0)
+            r.Avisos.Add($"Cobran en IyC sin horas en obras y no son administrativos: su BPS se reparte entre las obras de IyC por horas ({sinObra.Count}): {string.Join(", ", sinObra)}.");
         var fuera = horas.Where(h => h.Obra!.TipoObra is TipoObra.NA or TipoObra.Administracion)
             .GroupBy(h => h.Obra!.TipoObra)
             .Select(g => $"{(g.Key == TipoObra.NA ? "N-A" : "Administración")} {g.Sum(h => h.HorasEquivalentes).ToString("#,##0.##", Uy)} h")
@@ -412,6 +418,8 @@ public class DistribucionBpsService : IDistribucionBpsService
     }
 
     private static bool EsSede(Obra obra) => obra.Nombre.Contains("SEDE", StringComparison.OrdinalIgnoreCase);
+
+    private static bool EsAdministrativo(Funcionario? f) => (f?.Categoria ?? string.Empty).Contains("ADMIN", StringComparison.OrdinalIgnoreCase);
 
     // Construcción va con Construcción; IyC con IyC. Metalúrgica también va con IyC (la paga la empresa de IyC), pero solo
     // las horas de quien además tiene horas en obras de IyC: los metalúrgicos van por nominal × tasa. N-A y Administración no entran.
