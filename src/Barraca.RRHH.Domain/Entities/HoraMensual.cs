@@ -13,7 +13,12 @@ public class HoraMensual
     public string Cliente { get; set; } = string.Empty;
     public decimal HorasComunes { get; set; }
     public decimal HorasExtras { get; set; }
+    // Horas de lluvia: se pagan y cuentan como horas comunes para repartir el costo entre obras.
+    public decimal HorasLluvia { get; set; }
     public decimal HorasEquivalentes { get; set; }
+
+    public static decimal CalcularEquivalentes(decimal comunes, decimal extras, decimal lluvia) =>
+        comunes + (extras * 2m) + lluvia;
 
     public Periodo? Periodo { get; set; }
     public Funcionario? Funcionario { get; set; }

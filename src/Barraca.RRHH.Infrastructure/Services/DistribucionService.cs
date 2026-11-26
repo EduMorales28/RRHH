@@ -3,6 +3,7 @@ using Barraca.RRHH.Application.Interfaces;
 using Barraca.RRHH.Domain.Entities;
 using Barraca.RRHH.Domain.Enums;
 using Barraca.RRHH.Infrastructure.Data;
+using Barraca.RRHH.Infrastructure.Helpers;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
@@ -24,6 +25,8 @@ public class DistribucionService : IDistribucionService
             throw new ArgumentException("El periodo es requerido.", nameof(periodo));
 
         var periodoCodigo = periodo.Trim();
+        if (persistir)
+            await PeriodoGuard.VerificarAbiertoAsync(_db, periodoCodigo);
         var periodoEntity = await _db.Periodos.FirstOrDefaultAsync(x => x.Codigo == periodoCodigo);
         if (periodoEntity is null)
             throw new InvalidOperationException($"No existe el periodo '{periodoCodigo}'.");
@@ -250,10 +253,20 @@ public class DistribucionService : IDistribucionService
             })
             .ToList();
 
+        // El ajuste de redondeo se hace dentro de cada tipo de obra, para que cada tipo cuadre con sus pagos
+        // y no se pasen centésimos de un tipo a otro.
+        foreach (var grupoTipo in lineasFinales.GroupBy(x => x.TipoObra))
+        {
+            var totalTipo = controlPorFuncionario.Where(x => x.TipoObra == grupoTipo.Key).Sum(x => x.TotalFuncionario);
+            var diferenciaTipo = Math.Round(totalTipo - grupoTipo.Sum(x => x.Monto), 2, MidpointRounding.AwayFromZero);
+            if (diferenciaTipo != 0m)
+                grupoTipo.MaxBy(x => x.Monto)!.Monto += diferenciaTipo;
+        }
+
         var totalDistribucionFinal = lineasFinales.Sum(x => x.Monto);
         var diferenciaFinal = Math.Round(totalConsolidado - totalDistribucionFinal, 2, MidpointRounding.AwayFromZero);
         if (diferenciaFinal != 0m && lineasFinales.Count > 0)
-            lineasFinales[^1].Monto += diferenciaFinal;
+            lineasFinales.MaxBy(x => x.Monto)!.Monto += diferenciaFinal;
 
         totalDistribucionFinal = lineasFinales.Sum(x => x.Monto);
         if (totalDistribucionFinal != totalConsolidado)

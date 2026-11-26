@@ -6,7 +6,7 @@
         MinWidth="980"
         MinHeight="680"
         Icon="avares://Barraca.RRHH.App.Mac/Assets/app-icon.png"
-        Title="Barraca RRHH v3 - macOS">
+        Title="Morales Construcciones - RRHH">
   <Grid RowDefinitions="Auto,*,Auto" Background="#F3F4F6">
     <Border Grid.Row="0" Background="#0B7566" Padding="14">
       <DockPanel LastChildFill="False">
@@ -15,7 +15,7 @@
             <Image Source="avares://Barraca.RRHH.App.Mac/Assets/logo-morales.jpeg" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Border>
           <StackPanel>
-            <TextBlock Text="Barraca RRHH v3" Foreground="{DynamicResource BrandTextOnDarkBrush}" FontSize="26" FontWeight="Bold" VerticalAlignment="Center" />
+            <TextBlock Text="Morales Construcciones - RRHH" Foreground="{DynamicResource BrandTextOnDarkBrush}" FontSize="26" FontWeight="Bold" VerticalAlignment="Center" />
             <TextBlock Text="RRHH + Obras + Costos + Reportes PDF" Foreground="#E4EEF3" Margin="0,2,0,0" />
           </StackPanel>
         </StackPanel>

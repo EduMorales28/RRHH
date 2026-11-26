@@ -9,11 +9,15 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.8" />
+    <PackageReference Include="PdfPig" Version="0.1.16" />
     <PackageReference Include="QuestPDF" Version="2024.7.1" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Barraca.RRHH.Domain\Barraca.RRHH.Domain.csproj" />
     <ProjectReference Include="..\Barraca.RRHH.Application\Barraca.RRHH.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Reports\Assets\logo-morales.jpeg" LogicalName="Barraca.RRHH.Infrastructure.Reports.Assets.logo-morales.jpeg" />
   </ItemGroup>
 </Project>

@@ -28,13 +28,13 @@ public static class PdfReportStyle
         {
             if (logoBytes != null)
             {
-                row.ConstantItem(80).Element(e => e.PaddingRight(8).Image(logoBytes, ImageScaling.FitHeight));
+                row.ConstantItem(95).Element(e => e.PaddingRight(10).Height(62).AlignLeft().Image(logoBytes).FitArea());
             }
 
             row.RelativeItem().Column(col =>
             {
                 col.Item().Text(title).Bold().FontSize(TitleSize);
-                col.Item().Text($"Período: {periodo}    Corrida: {corrida}    Generado: {generated:yyyy-MM-dd HH:mm}").FontSize(SmallSize).FontColor(MediumGrey);
+                col.Item().Text($"Período: {periodo}    Corrida: {corrida}    Generado: {generated:yyyy-MM-dd HH:mm}").FontSize(SmallSize).FontColor(Colors.Grey.Darken1);
             });
         });
     }
@@ -46,16 +46,34 @@ public static class PdfReportStyle
             col.Item().Row(row =>
             {
                 if (logoBytes != null)
-                    row.ConstantItem(70).Element(e => e.PaddingRight(8).Image(logoBytes, ImageScaling.FitHeight));
+                    row.ConstantItem(95).Element(e => e.PaddingRight(10).Height(62).AlignLeft().Image(logoBytes).FitArea());
 
                 row.RelativeItem().Column(c =>
                 {
                     c.Item().Text(title).Bold().FontSize(18);
-                    c.Item().Text($"Periodo: {periodo}    Generado: {generated:yyyy-MM-dd HH:mm}").FontSize(9).FontColor(MediumGrey);
+                    c.Item().Text($"Período: {periodo}    Generado: {generated:yyyy-MM-dd HH:mm}").FontSize(9).FontColor(Colors.Grey.Darken1);
                 });
             });
         });
     }
+
+    private static readonly Lazy<byte[]?> LogoEmbebido = new(() =>
+    {
+        // Un logo.png junto al ejecutable reemplaza al logo embebido de Morales Construcciones.
+        var logoExterno = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
+        if (File.Exists(logoExterno))
+            return File.ReadAllBytes(logoExterno);
+
+        using var stream = typeof(PdfReportStyle).Assembly.GetManifestResourceStream("Barraca.RRHH.Infrastructure.Reports.Assets.logo-morales.jpeg");
+        if (stream is null)
+            return null;
+
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
+    });
+
+    public static byte[]? ObtenerLogo() => LogoEmbebido.Value;
 
     public static void SectionTitle(IContainer container, string text)
     {
@@ -64,7 +82,7 @@ public static class PdfReportStyle
 
     public static void Subtitle(IContainer container, string text)
     {
-        container.PaddingBottom(6).Text(text).FontSize(SmallSize).FontColor(MediumGrey);
+        container.PaddingBottom(6).Text(text).FontSize(SmallSize).FontColor(Colors.Grey.Darken1);
     }
 
     public static void CorporateCover(IContainer container, string title, string subtitle, string periodo, DateTime generated)
@@ -99,6 +117,7 @@ public static class PdfReportStyle
             TipoObra.Construccion => Colors.Green.Darken2,
             TipoObra.IndustriaYComercio => Colors.Green.Darken1,
             TipoObra.Administracion => Colors.Green.Darken3,
+            TipoObra.Metalurgica => Colors.Blue.Darken2,
             _ => Colors.Green.Darken1
         };
     }
@@ -159,15 +178,15 @@ public static class PdfReportStyle
     {
         container.Row(row =>
         {
-            row.RelativeItem().AlignLeft().Text($"Periodo: {periodo} | Reporte {ReportVersion}").FontSize(8).FontColor(Colors.Grey.Darken1);
+            row.RelativeItem().AlignLeft().Text($"Período: {periodo}").FontSize(8).FontColor(Colors.Grey.Darken1);
             row.RelativeItem().AlignCenter().DefaultTextStyle(x => x.FontSize(8)).Text(x =>
             {
-                x.Span("Pagina ");
+                x.Span("Página ");
                 x.CurrentPageNumber();
                 x.Span(" / ");
                 x.TotalPages();
             });
-            row.RelativeItem().AlignRight().Text("Barraca RRHH").FontSize(8).FontColor(Colors.Grey.Darken1);
+            row.RelativeItem().AlignRight().Text("Morales Construcciones - RRHH").FontSize(8).FontColor(Colors.Grey.Darken1);
         });
     }
 }

@@ -5,5 +5,6 @@ public enum TipoObra
     Construccion = 1,
     IndustriaYComercio = 2,
     Administracion = 3,
-    NA = 4
+    NA = 4,
+    Metalurgica = 5
 }

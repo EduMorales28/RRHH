@@ -11,7 +11,7 @@ using Microsoft.Win32;
 
 namespace Barraca.RRHH.App.ViewModels;
 
-public class MainViewModel : ViewModelBase
+public partial class MainViewModel : ViewModelBase
 {
     private readonly IDashboardService _dashboardService;
     private readonly IExcelImportService _excelImportService;
@@ -19,15 +19,13 @@ public class MainViewModel : ViewModelBase
     private readonly IPeriodoService _periodoService;
     private readonly IReportService _reportService;
     private readonly IConsistenciaService _consistenciaService;
+    private readonly IRevisionPlanillaService _revisionPlanillaService;
     private readonly BarracaDbContext _db;
 
     private string _periodo = "";
     private string _status = "Listo";
     private DashboardResumenDto _dashboard = new();
-    private string _carpetaReportes = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "BarracaRRHH",
-        "Reportes");
+    private string _carpetaReportes = Path.Combine(App.UserDataRoot, "Reportes");
 
     public MainViewModel(
         IDashboardService dashboardService,
@@ -36,6 +34,11 @@ public class MainViewModel : ViewModelBase
         IPeriodoService periodoService,
         IReportService reportService,
         IConsistenciaService consistenciaService,
+        IRevisionPlanillaService revisionPlanillaService,
+        ICargaMensualService cargaMensualService,
+        IPlanillaAbacoService planillaAbacoService,
+        IPlanillaHorasService planillaHorasService,
+        IDistribucionBpsService distribucionBpsService,
         BarracaDbContext db)
     {
         _dashboardService = dashboardService;
@@ -44,7 +47,10 @@ public class MainViewModel : ViewModelBase
         _periodoService = periodoService;
         _reportService = reportService;
         _consistenciaService = consistenciaService;
+        _revisionPlanillaService = revisionPlanillaService;
         _db = db;
+        InicializarCarga(cargaMensualService, planillaAbacoService, planillaHorasService);
+        InicializarBps(distribucionBpsService);
 
         ImportarFuncionariosCommand = new AsyncRelayCommand(() => ImportarAsync("FUNCIONARIOS"));
         ImportarObrasCommand = new AsyncRelayCommand(() => ImportarAsync("OBRAS"));
@@ -55,6 +61,9 @@ public class MainViewModel : ViewModelBase
         CerrarPeriodoCommand = new AsyncRelayCommand(CerrarPeriodoAsync);
         ReabrirPeriodoCommand = new AsyncRelayCommand(ReabrirPeriodoAsync);
         GenerarTodosLosReportesCommand = new AsyncRelayCommand(GenerarTodosLosReportesAsync);
+        GenerarReportesSoloPagosCommand = new AsyncRelayCommand(GenerarReportesSoloPagosAsync);
+        GenerarPlanillaPagosCommand = new AsyncRelayCommand(GenerarPlanillaPagosAsync);
+        GenerarPorcentajeHorasCommand = new AsyncRelayCommand(GenerarPorcentajeHorasAsync);
         CambiarPeriodoCommand = new AsyncRelayCommand(CambiarPeriodoAsync);
 
         _ = InicializarAsync();
@@ -102,6 +111,9 @@ public class MainViewModel : ViewModelBase
     public AsyncRelayCommand CerrarPeriodoCommand { get; }
     public AsyncRelayCommand ReabrirPeriodoCommand { get; }
     public AsyncRelayCommand GenerarTodosLosReportesCommand { get; }
+    public AsyncRelayCommand GenerarReportesSoloPagosCommand { get; }
+    public AsyncRelayCommand GenerarPlanillaPagosCommand { get; }
+    public AsyncRelayCommand GenerarPorcentajeHorasCommand { get; }
     public AsyncRelayCommand CambiarPeriodoCommand { get; }
 
     // command for deletion removed (handled in UI code-behind)
@@ -122,17 +134,17 @@ public class MainViewModel : ViewModelBase
             await _db.Database.EnsureCreatedAsync();
             await CargarPeriodosDisponiblesAsync();
 
-            // If no period selected yet, pick the most recent or create one for current month
-            if (string.IsNullOrEmpty(Periodo))
+            // Se muestra el último período sin cambiar su estado (abierto o cerrado).
+            var inicial = PeriodosDisponibles.FirstOrDefault();
+            if (inicial is null)
             {
-                Periodo = PeriodosDisponibles.FirstOrDefault()
-                    ?? DateTime.Now.ToString("yyyy-MM");
+                inicial = DateTime.Now.ToString("yyyy-MM");
+                await _cargaMensualService.CrearPeriodoAsync(inicial, null, "admin");
             }
 
-            await _periodoService.AbrirPeriodoAsync(Periodo, "admin");
-            await CargarPeriodosDisponiblesAsync();
-            await CargarDashboardAsync();
-            await CargarTablasAsync();
+            await SeleccionarPeriodoAsync(inicial);
+            await CargarEdicionAsync();
+            Status = $"Período en pantalla: {EstadoPeriodoTexto}";
         }
         catch (Exception ex)
         {
@@ -150,28 +162,6 @@ public class MainViewModel : ViewModelBase
         PeriodosDisponibles.Clear();
         foreach (var p in periodos)
             PeriodosDisponibles.Add(p);
-    }
-
-    private async Task CambiarPeriodoAsync()
-    {
-        try
-        {
-            var periodoNormalizado = NormalizarPeriodoOError(Periodo);
-
-            await _periodoService.AbrirPeriodoAsync(periodoNormalizado, "admin");
-            Periodo = periodoNormalizado;
-            await CargarPeriodosDisponiblesAsync();
-            await CargarDashboardAsync();
-            DistribucionLineas.Clear();
-            ReportesGenerados.Clear();
-            await CargarTablasAsync();
-            Status = $"Período activo: {periodoNormalizado}";
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show(ex.Message, "Período inválido", MessageBoxButton.OK, MessageBoxImage.Warning);
-            Status = $"Error cambiando período: {ex.Message}";
-        }
     }
 
     private async Task RefrescarTodoAsync()
@@ -197,6 +187,12 @@ public class MainViewModel : ViewModelBase
         {
             var periodoActivo = await ObtenerPeriodoActivoParaOperacionAsync(tipo);
 
+            if (!await RevisarPlanillaAntesDeImportarAsync(tipo, dialog.FileName, periodoActivo))
+            {
+                Status = $"Importación de {tipo} cancelada para corregir la planilla.";
+                return;
+            }
+
             string resultado = tipo switch
             {
                 "FUNCIONARIOS" => await _excelImportService.ImportarFuncionariosAsync(dialog.FileName, "admin"),
@@ -209,6 +205,11 @@ public class MainViewModel : ViewModelBase
             Status = resultado;
             await CargarDashboardAsync();
             await CargarTablasAsync();
+            await CargarEdicionAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            Status = "Operación cancelada.";
         }
         catch (Exception ex)
         {
@@ -217,9 +218,31 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    // Muestra los problemas de la planilla y deja decidir si importar igual. Devuelve true si se puede importar.
+    private async Task<bool> RevisarPlanillaAntesDeImportarAsync(string tipo, string archivo, string periodo)
+    {
+        IReadOnlyList<ProblemaPlanillaDto> problemas = tipo switch
+        {
+            "FUNCIONARIOS" => await _revisionPlanillaService.RevisarFuncionariosAsync(archivo),
+            "HORAS" => await _revisionPlanillaService.RevisarHorasAsync(archivo, periodo),
+            "PAGOS" => await _revisionPlanillaService.RevisarPagosAsync(archivo, periodo),
+            _ => Array.Empty<ProblemaPlanillaDto>()
+        };
+
+        if (problemas.Count == 0)
+            return true;
+
+        var ventana = new RevisionPlanillaWindow(tipo, Path.GetFileName(archivo), problemas)
+        {
+            Owner = System.Windows.Application.Current.MainWindow
+        };
+
+        return ventana.ShowDialog() == true;
+    }
+
     private async Task CargarDashboardAsync()
     {
-        Dashboard = await _dashboardService.ObtenerResumenAsync(Periodo);
+        Dashboard = await _dashboardService.ObtenerResumenAsync(PeriodoCargado);
     }
 
     private async Task CalcularDistribucionAsync()
@@ -239,6 +262,10 @@ public class MainViewModel : ViewModelBase
             await CargarDashboardAsync();
             await CargarTablasAsync();
         }
+        catch (OperationCanceledException)
+        {
+            Status = "Operación cancelada.";
+        }
         catch (Exception ex)
         {
             MessageBox.Show(ex.Message, "Error al calcular distribución", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -251,10 +278,18 @@ public class MainViewModel : ViewModelBase
         try
         {
             var periodoActivo = await ObtenerPeriodoActivoParaOperacionAsync("CERRAR");
+            if (MessageBox.Show($"¿Cerrar el período {periodoActivo}?\n\nUna vez cerrado no se pueden modificar sus horas, pagos ni distribución (los reportes se pueden seguir generando).",
+                    "Cerrar período", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                return;
+
             await _periodoService.CerrarPeriodoAsync(periodoActivo, "admin");
             Status = $"Período {periodoActivo} cerrado";
-            await CargarPeriodosDisponiblesAsync();
             await CargarTablasAsync();
+            await CargarMesAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            Status = "Operación cancelada.";
         }
         catch (Exception ex)
         {
@@ -268,10 +303,18 @@ public class MainViewModel : ViewModelBase
         try
         {
             var periodoActivo = await ObtenerPeriodoActivoParaOperacionAsync("REABRIR");
+            if (MessageBox.Show($"¿Reabrir el período {periodoActivo} para corregirlo?",
+                    "Reabrir período", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+                return;
+
             await _periodoService.ReabrirPeriodoAsync(periodoActivo, "admin");
             Status = $"Período {periodoActivo} reabierto";
-            await CargarPeriodosDisponiblesAsync();
             await CargarTablasAsync();
+            await CargarMesAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            Status = "Operación cancelada.";
         }
         catch (Exception ex)
         {
@@ -280,28 +323,19 @@ public class MainViewModel : ViewModelBase
         }
     }
 
+    // Las operaciones siempre trabajan sobre el período que está en pantalla.
     private async Task<string> ObtenerPeriodoActivoParaOperacionAsync(string tipoOperacion)
     {
-        if (!string.IsNullOrWhiteSpace(Periodo))
-            return NormalizarPeriodoOError(Periodo);
+        if (!await ConfirmarCambiosPendientesAsync())
+            throw new OperationCanceledException();
 
-        var sugerido = PeriodosDisponibles.FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(sugerido))
-            sugerido = DateTime.Now.ToString("yyyy-MM");
+        if (string.IsNullOrWhiteSpace(PeriodoCargado))
+            throw new InvalidOperationException("Primero elija un período o cree uno con 'Nuevo mes'.");
 
-        var confirm = MessageBox.Show(
-            $"No hay período seleccionado. Se usará '{sugerido}' para {tipoOperacion}. ¿Continuar?",
-            "Período requerido",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+        if (!string.Equals((Periodo ?? string.Empty).Trim(), PeriodoCargado, StringComparison.OrdinalIgnoreCase))
+            Periodo = PeriodoCargado;
 
-        if (confirm != MessageBoxResult.Yes)
-            throw new InvalidOperationException("Debe seleccionar un período antes de continuar.");
-
-        Periodo = sugerido;
-        await _periodoService.AbrirPeriodoAsync(Periodo, "admin");
-        await CargarPeriodosDisponiblesAsync();
-        return Periodo;
+        return PeriodoCargado;
     }
 
     private static string NormalizarPeriodoOError(string? value)
@@ -321,6 +355,16 @@ public class MainViewModel : ViewModelBase
             if (!await ValidarYCorregirConsistenciaAntesDeContinuarAsync(periodoActivo, "generar los reportes"))
                 return;
 
+            // La distribución se recalcula con los datos actuales; en un período cerrado se usa la guardada.
+            if (!PeriodoCerrado)
+            {
+                var lineas = await _distribucionService.CalcularDistribucionAsync(periodoActivo, "admin", true);
+                DistribucionLineas.Clear();
+                foreach (var item in lineas)
+                    DistribucionLineas.Add(item);
+                await CargarDashboardAsync();
+            }
+
             Directory.CreateDirectory(CarpetaReportes);
             var rutas = new List<string>
             {
@@ -339,10 +383,120 @@ public class MainViewModel : ViewModelBase
             Status = $"Reportes generados en {CarpetaReportes}";
             await CargarTablasAsync();
         }
+        catch (OperationCanceledException)
+        {
+            Status = "Operación cancelada.";
+        }
         catch (Exception ex)
         {
             MessageBox.Show(ex.Message, "Error generando reportes", MessageBoxButton.OK, MessageBoxImage.Error);
             Status = $"Error reportes: {ex.Message}";
+        }
+    }
+
+    // Reportes que solo dependen de PAGOS: no requieren HORAS ni distribución, por eso no se valida consistencia horas/pagos.
+    private async Task GenerarReportesSoloPagosAsync()
+    {
+        try
+        {
+            var periodoActivo = await ObtenerPeriodoActivoParaOperacionAsync("GENERAR REPORTES DE PAGOS");
+
+            var hayPagos = await _db.PagosMensuales.AnyAsync(x => x.Periodo!.Codigo == periodoActivo
+                && (x.Adelanto > 0 || x.Liquido > 0 || x.Retencion > 0));
+            if (!hayPagos)
+            {
+                MessageBox.Show(
+                    $"No hay pagos con montos para el período {periodoActivo}. Complete los montos en la pestaña 'Pagos del mes' y vuelva a intentar.",
+                    "Sin pagos",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                Status = $"Sin pagos para {periodoActivo}.";
+                return;
+            }
+
+            Directory.CreateDirectory(CarpetaReportes);
+            var rutas = new List<string>
+            {
+                await _reportService.GenerarRetencionesAsync(periodoActivo, CarpetaReportes, "admin"),
+                await _reportService.GenerarConsolidadoGeneralAsync(periodoActivo, CarpetaReportes, "admin"),
+                await _reportService.GenerarRedPagosAsync(periodoActivo, CarpetaReportes, "admin"),
+                await _reportService.GenerarNAAsync(periodoActivo, CarpetaReportes, "admin")
+            };
+
+            ReportesGenerados.Clear();
+            foreach (var ruta in rutas)
+                ReportesGenerados.Add(new SimpleRowViewModel { Codigo = Path.GetFileName(ruta), Descripcion = ruta, Extra = "PDF generado" });
+
+            Status = $"Reportes de pagos generados en {CarpetaReportes}";
+            await CargarTablasAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            Status = "Operación cancelada.";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Error generando reportes de pagos", MessageBoxButton.OK, MessageBoxImage.Error);
+            Status = $"Error reportes: {ex.Message}";
+        }
+    }
+
+    private async Task GenerarPorcentajeHorasAsync()
+    {
+        try
+        {
+            var periodoActivo = await ObtenerPeriodoActivoParaOperacionAsync("GENERAR PORCENTAJE HORAS");
+            Directory.CreateDirectory(CarpetaReportes);
+            var ruta = await _reportService.GenerarPorcentajeHorasExcelAsync(periodoActivo, CarpetaReportes, "admin");
+
+            ReportesGenerados.Insert(0, new SimpleRowViewModel
+            {
+                Codigo = Path.GetFileName(ruta),
+                Descripcion = ruta,
+                Extra = "Excel generado"
+            });
+
+            Status = $"Porcentaje de horas generado: {Path.GetFileName(ruta)}";
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+        }
+        catch (OperationCanceledException)
+        {
+            Status = "Operación cancelada.";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Error al generar reporte", MessageBoxButton.OK, MessageBoxImage.Error);
+            Status = $"Error: {ex.Message}";
+        }
+    }
+
+    private async Task GenerarPlanillaPagosAsync()
+    {
+        try
+        {
+            var periodoActivo = await ObtenerPeriodoActivoParaOperacionAsync("GENERAR PLANILLA PAGOS");
+            Directory.CreateDirectory(CarpetaReportes);
+            var ruta = await _reportService.GenerarPlanillaPagosExcelAsync(periodoActivo, CarpetaReportes, "admin");
+
+            ReportesGenerados.Insert(0, new SimpleRowViewModel
+            {
+                Codigo = Path.GetFileName(ruta),
+                Descripcion = ruta,
+                Extra = "Excel generado"
+            });
+
+            Status = $"Planilla de pagos generada: {Path.GetFileName(ruta)}";
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ruta) { UseShellExecute = true });
+        }
+        catch (OperationCanceledException)
+        {
+            Status = "Operación cancelada.";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Error al generar planilla", MessageBoxButton.OK, MessageBoxImage.Error);
+            Status = $"Error: {ex.Message}";
         }
     }
 
@@ -358,6 +512,7 @@ public class MainViewModel : ViewModelBase
         };
 
         var resultado = ventana.ShowDialog();
+        await CargarMesAsync();
         if (resultado != true)
         {
             Status = "Operación cancelada por inconsistencias de horas/pagos.";
@@ -378,16 +533,6 @@ public class MainViewModel : ViewModelBase
 
     private async Task CargarTablasAsync()
     {
-        Funcionarios.Clear();
-        foreach (var item in await _db.Funcionarios.OrderBy(x => x.NumeroFuncionario).Take(250)
-                     .Select(x => new SimpleRowViewModel { Codigo = x.NumeroFuncionario, Descripcion = x.Nombre, Extra = x.Activo ? x.Categoria : $"INACTIVO - {x.Categoria}" }).ToListAsync())
-            Funcionarios.Add(item);
-
-        Obras.Clear();
-        foreach (var item in await _db.Obras.OrderBy(x => x.NumeroObra).Take(250)
-                     .Select(x => new SimpleRowViewModel { Codigo = x.NumeroObra, Descripcion = x.Nombre, Extra = x.Activa ? x.TipoObraOriginal : $"INACTIVA - {x.TipoObraOriginal}" }).ToListAsync())
-            Obras.Add(item);
-
         // Load recent audit events but hide low-value insertion/deletion noise
         Auditoria.Clear();
         var recentAudit = await _db.AuditoriaEventos
@@ -416,35 +561,31 @@ public class MainViewModel : ViewModelBase
                 ReportesGenerados.Add(new SimpleRowViewModel { Codigo = Path.GetFileName(file), Descripcion = file, Extra = "PDF" });
         }
 
-        // Always reload distribution lines for the selected period
-        if (DistribucionLineas.Count == 0)
+        var periodoId = await _db.Periodos.Where(x => x.Codigo == PeriodoCargado).Select(x => (int?)x.Id).FirstOrDefaultAsync();
+        DistribucionLineas.Clear();
+        if (periodoId.HasValue)
         {
-            var periodoId = await _db.Periodos.Where(x => x.Codigo == Periodo).Select(x => (int?)x.Id).FirstOrDefaultAsync();
-            if (periodoId.HasValue)
-            {
-                var existentes = await _db.DistribucionesCosto.Include(x => x.Obra)
-                    .Where(x => x.PeriodoId == periodoId.Value)
-                    .OrderBy(x => x.TipoObra).ThenBy(x => x.Obra!.NumeroObra).ThenBy(x => x.Categoria).Take(500).ToListAsync();
+            var existentes = await _db.DistribucionesCosto.Include(x => x.Obra)
+                .Where(x => x.PeriodoId == periodoId.Value)
+                .OrderBy(x => x.TipoObra).ThenBy(x => x.Obra!.NumeroObra).ThenBy(x => x.Categoria).Take(500).ToListAsync();
 
-                DistribucionLineas.Clear();
-                foreach (var item in existentes)
+            foreach (var item in existentes)
+            {
+                DistribucionLineas.Add(new DistribucionLineaDto
                 {
-                    DistribucionLineas.Add(new DistribucionLineaDto
-                    {
-                        TipoObra = item.TipoObra,
-                        ObraId = item.ObraId,
-                        NumeroObra = item.Obra?.NumeroObra ?? string.Empty,
-                        NombreObra = item.Obra?.Nombre ?? string.Empty,
-                        Categoria = item.Categoria,
-                        HorasLinea = item.HorasLinea,
-                        HorasTotalesTipoObra = item.HorasTotalesTipoObra,
-                        CostoTotalTipoObra = item.CostoTotalTipoObra,
-                        PorcentajeParticipacion = item.PorcentajeParticipacion,
-                        MontoLinea = item.MontoLinea,
-                        ValorHora = item.ValorHora,
-                        Jornales = item.Jornales
-                    });
-                }
+                    TipoObra = item.TipoObra,
+                    ObraId = item.ObraId,
+                    NumeroObra = item.Obra?.NumeroObra ?? string.Empty,
+                    NombreObra = item.Obra?.Nombre ?? string.Empty,
+                    Categoria = item.Categoria,
+                    HorasLinea = item.HorasLinea,
+                    HorasTotalesTipoObra = item.HorasTotalesTipoObra,
+                    CostoTotalTipoObra = item.CostoTotalTipoObra,
+                    PorcentajeParticipacion = item.PorcentajeParticipacion,
+                    MontoLinea = item.MontoLinea,
+                    ValorHora = item.ValorHora,
+                    Jornales = item.Jornales
+                });
             }
         }
     }

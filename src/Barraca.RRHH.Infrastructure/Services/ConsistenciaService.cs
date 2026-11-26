@@ -32,12 +32,14 @@ public class ConsistenciaService : IConsistenciaService
 
         if (_db.Database.IsSqlite())
         {
+            // Filas sin horas o sin montos (por ejemplo, copiadas del mes anterior) no cuentan para los cruces.
             var horasRaw = await _db.HorasMensuales
                 .Where(x => x.PeriodoId == periodoEntity.Id)
                 .Select(x => new { x.FuncionarioId, x.HorasEquivalentes })
                 .ToListAsync();
 
             horasPorFuncionario = horasRaw
+                .Where(x => x.HorasEquivalentes > 0m)
                 .GroupBy(x => x.FuncionarioId)
                 .Select(g => (g.Key, g.Count(), g.Sum(x => x.HorasEquivalentes)))
                 .ToList();
@@ -48,6 +50,7 @@ public class ConsistenciaService : IConsistenciaService
                 .ToListAsync();
 
             pagosPorFuncionario = pagosRaw
+                .Where(x => x.TotalGenerado > 0m)
                 .GroupBy(x => x.FuncionarioId)
                 .Select(g => (g.Key, g.Count(), g.Sum(x => x.TotalGenerado)))
                 .ToList();
@@ -55,7 +58,7 @@ public class ConsistenciaService : IConsistenciaService
         else
         {
             horasPorFuncionario = await _db.HorasMensuales
-                .Where(x => x.PeriodoId == periodoEntity.Id)
+                .Where(x => x.PeriodoId == periodoEntity.Id && x.HorasEquivalentes > 0m)
                 .GroupBy(x => x.FuncionarioId)
                 .Select(g => new ValueTuple<int, int, decimal>(
                     g.Key,
@@ -64,7 +67,7 @@ public class ConsistenciaService : IConsistenciaService
                 .ToListAsync();
 
             pagosPorFuncionario = await _db.PagosMensuales
-                .Where(x => x.PeriodoId == periodoEntity.Id)
+                .Where(x => x.PeriodoId == periodoEntity.Id && x.TotalGenerado > 0m)
                 .GroupBy(x => x.FuncionarioId)
                 .Select(g => new ValueTuple<int, int, decimal>(
                     g.Key,
@@ -134,12 +137,13 @@ public class ConsistenciaService : IConsistenciaService
                 x.FuncionarioId,
                 x.HorasComunes,
                 x.HorasExtras,
+                x.HorasLluvia,
                 x.HorasEquivalentes
             })
             .ToListAsync();
 
         var horasDescuadradasPorFuncionario = horasDescuadradasRaw
-            .Where(x => Math.Abs((x.HorasComunes + (x.HorasExtras * 2m)) - x.HorasEquivalentes) > 0.01m)
+            .Where(x => Math.Abs(HoraMensual.CalcularEquivalentes(x.HorasComunes, x.HorasExtras, x.HorasLluvia) - x.HorasEquivalentes) > 0.01m)
             .GroupBy(x => x.FuncionarioId)
             .ToDictionary(g => g.Key, g => g.Count());
 
@@ -318,7 +322,7 @@ public class ConsistenciaService : IConsistenciaService
                 .ToListAsync();
 
             return rows
-                .Where(x => Math.Abs((x.HorasComunes + (x.HorasExtras * 2m)) - x.HorasEquivalentes) > 0.01m)
+                .Where(x => Math.Abs(HoraMensual.CalcularEquivalentes(x.HorasComunes, x.HorasExtras, x.HorasLluvia) - x.HorasEquivalentes) > 0.01m)
                 .OrderBy(x => x.RegistroOrigen)
                 .Select(x => new ConsistenciaDetalleRegistroDto
                 {
@@ -328,7 +332,7 @@ public class ConsistenciaService : IConsistenciaService
                     Referencia = x.Obra != null ? $"{x.Obra.NumeroObra} - {x.Obra.Nombre}" : x.NombreObraExcel,
                     CategoriaOTipo = x.Categoria,
                     MontoOHoras = x.HorasEquivalentes,
-                    Observacion = $"Comunes: {x.HorasComunes:N2} | Extras: {x.HorasExtras:N2} | Esperado Eq: {(x.HorasComunes + (x.HorasExtras * 2m)):N2}"
+                    Observacion = $"Comunes: {x.HorasComunes:N2} | Extras: {x.HorasExtras:N2} | Lluvia: {x.HorasLluvia:N2} | Esperado Eq: {HoraMensual.CalcularEquivalentes(x.HorasComunes, x.HorasExtras, x.HorasLluvia):N2}"
                 })
                 .ToList();
         }
@@ -412,6 +416,7 @@ public class ConsistenciaService : IConsistenciaService
     public async Task CorregirConsistenciaFuncionarioAsync(string periodo, string tipo, int funcionarioIdOrigen, string numeroFuncionarioDestino, string usuario)
     {
         var periodoCodigo = (periodo ?? string.Empty).Trim();
+        await PeriodoGuard.VerificarAbiertoAsync(_db, periodoCodigo);
         if (string.IsNullOrWhiteSpace(periodoCodigo))
             throw new ArgumentException("El periodo es requerido.", nameof(periodo));
 
@@ -483,6 +488,7 @@ public class ConsistenciaService : IConsistenciaService
     public async Task GuardarDetalleErrorAsync(string periodo, ConsistenciaDetalleRegistroDto detalle, string usuario)
     {
         var periodoCodigo = (periodo ?? string.Empty).Trim();
+        await PeriodoGuard.VerificarAbiertoAsync(_db, periodoCodigo);
         if (string.IsNullOrWhiteSpace(periodoCodigo))
             throw new ArgumentException("El periodo es requerido.", nameof(periodo));
 

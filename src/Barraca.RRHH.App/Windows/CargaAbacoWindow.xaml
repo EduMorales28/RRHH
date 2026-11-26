@@ -1,0 +1,83 @@
+<Window x:Class="Barraca.RRHH.App.Windows.CargaAbacoWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:helpers="clr-namespace:Barraca.RRHH.App.Helpers"
+        Title="Cargar planilla de ábaco" Height="760" Width="1400"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" Background="#F8FAFC">
+    <Window.Resources>
+        <helpers:NumeroConverter x:Key="Numero"/>
+        <Style x:Key="Num" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Margin" Value="4,0"/>
+        </Style>
+        <Style x:Key="Calc" TargetType="DataGridCell">
+            <Setter Property="Background" Value="#F1F5F9"/>
+            <Setter Property="Focusable" Value="False"/>
+        </Style>
+    </Window.Resources>
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Background="White" Padding="12" CornerRadius="8" BorderBrush="#CBD5E1" BorderThickness="1">
+            <StackPanel>
+                <TextBlock FontWeight="Bold" FontSize="18" Foreground="#0F172A">
+                    <Run Text="Planilla de ábaco → Pagos del mes"/>
+                    <Run Text="{Binding Periodo, Mode=OneWay, StringFormat='({0})'}"/>
+                </TextBlock>
+                <TextBlock Text="{Binding ResumenPlanillas}" Margin="0,6,0,0" Foreground="#334155" TextWrapping="Wrap"/>
+                <TextBlock Margin="0,6,0,0" Foreground="#334155" TextWrapping="Wrap"
+                           Text="Adelanto = Adelantos (menos la retención fija, si tiene) · Líquido = Pago · Retención = Ret. Jud. (más la retención fija). Las filas TICKET y N-A no se tocan. Revise las filas amarillas: el número del programa es una sugerencia; puede escribir otro."/>
+            </StackPanel>
+        </Border>
+
+        <DockPanel Grid.Row="1" Margin="0,10,0,6">
+            <CheckBox Content="Ver solo las filas para revisar" IsChecked="{Binding SoloARevisar}" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding ResumenRevision}" Margin="20,0,0,0" Foreground="#334155" TextWrapping="Wrap" VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <DataGrid Grid.Row="2" x:Name="dgAbaco" ItemsSource="{Binding Vista}" AutoGenerateColumns="False"
+                  CanUserAddRows="False" CanUserDeleteRows="False" SelectionUnit="FullRow" RowHeaderWidth="12"
+                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#E5E7EB" FontSize="13" RowHeight="26">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding RequiereRevision}" Value="True">
+                            <Setter Property="Background" Value="#FEF9C3"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding TieneError}" Value="True">
+                            <Setter Property="Background" Value="#FEE2E2"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Empresa" Binding="{Binding Empresa, Mode=OneWay}" Width="110" IsReadOnly="True" CellStyle="{StaticResource Calc}"/>
+                <DataGridTextColumn Header="Cód. ábaco" Binding="{Binding Codigo, Mode=OneWay}" Width="75" IsReadOnly="True" CellStyle="{StaticResource Calc}"/>
+                <DataGridTextColumn Header="Empleado en ábaco" Binding="{Binding NombreAbaco, Mode=OneWay}" Width="230" IsReadOnly="True" CellStyle="{StaticResource Calc}"/>
+                <DataGridTextColumn Header="N° func. programa" Binding="{Binding NumeroFuncionario, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+                <DataGridCheckBoxColumn Header="Crear" Binding="{Binding CrearNuevo, UpdateSourceTrigger=PropertyChanged}" Width="50"/>
+                <DataGridTextColumn Header="Funcionario en el programa" Binding="{Binding NombrePrograma, Mode=OneWay}" Width="220" IsReadOnly="True" CellStyle="{StaticResource Calc}"/>
+                <DataGridTextColumn Header="Estado" Binding="{Binding Estado, Mode=OneWay}" Width="200" IsReadOnly="True" CellStyle="{StaticResource Calc}"/>
+                <DataGridTextColumn Header="Adelanto" Binding="{Binding Adelanto, Mode=OneWay, Converter={StaticResource Numero}}" Width="85" IsReadOnly="True" ElementStyle="{StaticResource Num}" CellStyle="{StaticResource Calc}"/>
+                <DataGridTextColumn Header="Retención" Binding="{Binding Retencion, Mode=OneWay, Converter={StaticResource Numero}}" Width="85" IsReadOnly="True" ElementStyle="{StaticResource Num}" CellStyle="{StaticResource Calc}"/>
+                <DataGridTextColumn Header="Líquido" Binding="{Binding Liquido, Mode=OneWay, Converter={StaticResource Numero}}" Width="85" IsReadOnly="True" ElementStyle="{StaticResource Num}" CellStyle="{StaticResource Calc}"/>
+                <DataGridTextColumn Header="Problema" Binding="{Binding Problema, Mode=OneWay}" Width="*" MinWidth="120" IsReadOnly="True" CellStyle="{StaticResource Calc}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <DockPanel Grid.Row="3" Margin="0,10,0,0">
+            <TextBlock VerticalAlignment="Center" Foreground="#475569" TextWrapping="Wrap" MaxWidth="780"
+                       Text="Al cargar, los números elegidos se recuerdan para los próximos meses. Los montos quedan en 'Pagos del mes' sin guardar: revíselos y apriete 'Guardar pagos'."/>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancelar" Padding="14,8" Margin="0,0,8,0" IsCancel="True" Click="Cancelar_Click"/>
+                <Button Content="Cargar en Pagos del mes" Padding="14,8" Click="Cargar_Click"
+                        Background="#0F766E" Foreground="White" FontWeight="SemiBold"/>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>

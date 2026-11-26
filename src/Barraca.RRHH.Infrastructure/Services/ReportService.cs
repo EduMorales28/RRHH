@@ -38,8 +38,9 @@ public class ReportService : IReportService
     public async Task<string> GenerarConsolidadoGeneralAsync(string periodo, string carpetaDestino, string usuario)
     {
         var periodoId = await ObtenerPeriodoId(periodo);
+        // Las filas sin montos (por ejemplo, copiadas del mes anterior y no completadas) no se listan.
         var pagos = await _db.PagosMensuales.Include(x => x.Funcionario)
-            .Where(x => x.PeriodoId == periodoId)
+            .Where(x => x.PeriodoId == periodoId && (x.Adelanto > 0 || x.Liquido > 0 || x.Retencion > 0))
             .OrderBy(x => x.TipoObra).ThenBy(x => x.Funcionario!.Nombre)
             .ToListAsync();
 
@@ -77,13 +78,35 @@ public class ReportService : IReportService
         return path;
     }
 
+    // Un pago negativo (ábaco: el adelanto superó lo que le corresponde en esa empresa) se descuenta del mayor pago
+    // positivo del mismo funcionario: se le transfiere un solo neto. Las filas deben venir sin seguimiento (AsNoTracking)
+    // porque se modifican solo para el listado.
+    private static List<PagoMensual> NetearPagosNegativos(List<PagoMensual> filas)
+    {
+        foreach (var grupo in filas.GroupBy(x => x.FuncionarioId))
+        {
+            var deuda = -grupo.Where(x => x.Liquido < 0).Sum(x => x.Liquido);
+            foreach (var positivo in grupo.Where(x => x.Liquido > 0).OrderByDescending(x => x.Liquido))
+            {
+                if (deuda <= 0)
+                    break;
+
+                var descuento = Math.Min(deuda, positivo.Liquido);
+                positivo.Liquido -= descuento;
+                deuda -= descuento;
+            }
+        }
+
+        return filas.Where(x => x.Liquido > 0).ToList();
+    }
+
     public async Task<string> GenerarRedPagosAsync(string periodo, string carpetaDestino, string usuario)
     {
         var periodoId = await ObtenerPeriodoId(periodo);
-        var rows = await _db.PagosMensuales.Include(x => x.Funcionario).ThenInclude(f => f!.CuentasPago)
-            .Where(x => x.PeriodoId == periodoId && x.TipoObra != TipoObra.NA && x.TipoPago.ToUpper().Contains("RED") && x.Liquido > 0)
+        var rows = NetearPagosNegativos(await _db.PagosMensuales.AsNoTracking().Include(x => x.Funcionario).ThenInclude(f => f!.CuentasPago)
+            .Where(x => x.PeriodoId == periodoId && x.TipoObra != TipoObra.NA && x.TipoPago.ToUpper().Contains("RED") && x.Liquido != 0)
             .OrderBy(x => x.TipoObra).ThenBy(x => x.Funcionario!.Nombre)
-            .ToListAsync();
+            .ToListAsync());
 
         var path = Path.Combine(carpetaDestino, $"RedPagos_Funcionarios_{periodo}.pdf");
         CreatePagosPdf(path, periodo, "Pagos Red Pagos", rows);
@@ -114,8 +137,7 @@ public class ReportService : IReportService
 
         decimal totalAdel = 0;
 
-        var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
-        byte[]? logoBytes = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
+        byte[]? logoBytes = PdfReportStyle.ObtenerLogo();
 
         Document.Create(container =>
         {
@@ -128,7 +150,7 @@ public class ReportService : IReportService
                 PdfReportStyle.HeaderWithQuickSummary(
                     page.Header(),
                     logoBytes,
-                    "Barraca Morales - Adelantos",
+                    "Morales Construcciones - Adelantos",
                     periodo,
                     DateTime.Now,
                     ("Tipos", grouped.Count.ToString()),
@@ -207,8 +229,7 @@ public class ReportService : IReportService
 
         decimal totalAdel = 0, totalLiquido = 0, totalRet = 0, totalGeneral = 0;
 
-        var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
-        byte[]? logoBytes = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
+        byte[]? logoBytes = PdfReportStyle.ObtenerLogo();
 
         Document.Create(container =>
         {
@@ -354,8 +375,7 @@ public class ReportService : IReportService
 
         decimal totalGeneral = 0;
 
-        var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
-        byte[]? logoBytes = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
+        byte[]? logoBytes = PdfReportStyle.ObtenerLogo();
         Document.Create(container =>
         {
             container.Page(page =>
@@ -367,7 +387,7 @@ public class ReportService : IReportService
                 PdfReportStyle.HeaderWithQuickSummary(
                     page.Header(),
                     logoBytes,
-                    "Barraca Morales - Distribucion por Obra",
+                    "Morales Construcciones - Distribucion por Obra",
                     periodo,
                     DateTime.Now,
                     ("Tipos", groupedTipo.Count.ToString()),
@@ -550,8 +570,7 @@ public class ReportService : IReportService
         var grouped = rows.GroupBy(x => x.TipoObraOriginal).ToList();
         decimal totalGeneral = 0;
 
-        var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
-        byte[]? logoBytes = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
+        byte[]? logoBytes = PdfReportStyle.ObtenerLogo();
 
         Document.Create(container =>
         {
@@ -563,7 +582,7 @@ public class ReportService : IReportService
                 PdfReportStyle.HeaderWithQuickSummary(
                     page.Header(),
                     logoBytes,
-                    $"Barraca Morales - {titulo}",
+                    $"Morales Construcciones - {titulo}",
                     periodo,
                     DateTime.Now,
                     ("Tipos", grouped.Count.ToString()),
@@ -614,7 +633,8 @@ public class ReportService : IReportService
 
                                         foreach (var r in grp)
                                         {
-                                            var cuenta = r.Funcionario?.CuentasPago.FirstOrDefault();
+                                            var cuentas = r.Funcionario?.CuentasPago ?? [];
+                                            var cuenta = CuentaVigente.Seleccionar(cuentas, r.TipoPago);
                                             t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(AbreviarTipoObra(r.TipoObra)));
                                             t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(r.Funcionario?.Nombre ?? ""));
                                             t.Cell().Element(cell => PdfReportStyle.TableCell(cell).Text(cuenta?.Banco ?? r.TipoPago));
@@ -645,8 +665,7 @@ public class ReportService : IReportService
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         decimal totalRet = 0;
 
-        var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.png");
-        byte[]? logoBytes = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
+        byte[]? logoBytes = PdfReportStyle.ObtenerLogo();
 
         Document.Create(container =>
         {
@@ -657,11 +676,11 @@ public class ReportService : IReportService
                 page.Header().Row(r =>
                 {
                     if (logoBytes != null)
-                        r.ConstantItem(80).Image(logoBytes, ImageScaling.FitHeight);
+                        r.ConstantItem(95).PaddingRight(10).Height(62).AlignLeft().Image(logoBytes).FitArea();
 
                     r.RelativeItem().Column(col =>
                     {
-                        col.Item().Text("Barraca Morales - Retenciones").Bold().FontSize(16);
+                        col.Item().Text("Morales Construcciones - Retenciones").Bold().FontSize(16);
                         col.Item().Text($"Periodo: {periodo}").FontSize(10);
                     });
                 });
@@ -737,7 +756,7 @@ public class ReportService : IReportService
                 page.Margin(25);
                 page.Header().Column(col =>
                 {
-                    col.Item().Text("Barraca Morales - Gestión RRHH y Costos").Bold().FontSize(18);
+                    col.Item().Text("Morales Construcciones - Gestión RRHH y Costos").Bold().FontSize(18);
                     col.Item().Text(titulo).FontSize(12);
                     col.Item().Text($"Generado: {DateTime.Now:yyyy-MM-dd HH:mm}").FontSize(9).FontColor(Colors.Grey.Darken1);
                 });
@@ -788,7 +807,344 @@ public class ReportService : IReportService
             TipoObra.Construccion => "CONST.",
             TipoObra.IndustriaYComercio => "IND. Y COM.",
             TipoObra.Administracion => "ADM.",
+            TipoObra.Metalurgica => "METAL.",
             _ => "N-A"
         };
+    }
+
+    public async Task<string> GenerarPlanillaPagosExcelAsync(string periodo, string carpetaDestino, string usuario)
+    {
+        var periodoId = await ObtenerPeriodoId(periodo);
+
+        var redPagos = NetearPagosNegativos(await _db.PagosMensuales.AsNoTracking()
+            .Include(x => x.Funcionario).ThenInclude(f => f!.CuentasPago)
+            .Where(x => x.PeriodoId == periodoId && x.TipoObra != TipoObra.NA
+                        && x.TipoPago.ToUpper().Contains("RED") && x.Liquido != 0)
+            .OrderBy(x => x.TipoObra).ThenBy(x => x.Funcionario!.Nombre)
+            .ToListAsync());
+
+        var naEfectivo = await _db.PagosMensuales
+            .Include(x => x.Funcionario).ThenInclude(f => f!.CuentasPago)
+            .Where(x => x.PeriodoId == periodoId && x.TipoObra == TipoObra.NA && x.Liquido > 0)
+            .OrderBy(x => x.Funcionario!.Nombre)
+            .ToListAsync();
+
+        Directory.CreateDirectory(carpetaDestino);
+        var path = Path.Combine(carpetaDestino, $"Planilla_Pagos_{periodo}.xlsx");
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("Pagos");
+
+        // --- Estilos ---
+        var headerFill = ClosedXML.Excel.XLColor.FromHtml("#16324F");
+        var sectionFill = ClosedXML.Excel.XLColor.FromHtml("#D9E5F3");
+        var altFill = ClosedXML.Excel.XLColor.FromHtml("#F3F4F6");
+        var totalFill = ClosedXML.Excel.XLColor.FromHtml("#E5F0E0");
+
+        string[] cols = ["Tipo Obra", "Funcionario", "Tipo Pago", "Banco", "Cuenta Nueva", "Cuenta Vieja", "Monto"];
+        int colCount = cols.Length;
+
+        // Título principal
+        ws.Cell(1, 1).Value = $"Planilla de Pagos - Período {periodo}";
+        ws.Cell(1, 1).Style.Font.Bold = true;
+        ws.Cell(1, 1).Style.Font.FontSize = 14;
+        ws.Range(1, 1, 1, colCount).Merge();
+
+        ws.Cell(2, 1).Value = $"Generado: {DateTime.Now:dd/MM/yyyy HH:mm}";
+        ws.Cell(2, 1).Style.Font.Italic = true;
+        ws.Range(2, 1, 2, colCount).Merge();
+
+        int row = 4;
+
+        void EscribirSeccion(string titulo, List<PagoMensual> filas)
+        {
+            if (filas.Count == 0) return;
+
+            // Encabezado de sección
+            var sectionRange = ws.Range(row, 1, row, colCount);
+            sectionRange.Merge();
+            sectionRange.Value = titulo;
+            sectionRange.Style.Fill.BackgroundColor = sectionFill;
+            sectionRange.Style.Font.Bold = true;
+            sectionRange.Style.Font.FontSize = 11;
+            row++;
+
+            // Cabecera de columnas
+            for (int c = 0; c < colCount; c++)
+            {
+                var cell = ws.Cell(row, c + 1);
+                cell.Value = cols[c];
+                cell.Style.Fill.BackgroundColor = headerFill;
+                cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+                cell.Style.Font.Bold = true;
+                cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+            }
+            row++;
+
+            var grupos = filas.GroupBy(x => x.TipoObraOriginal).ToList();
+            foreach (var grp in grupos)
+            {
+                bool par = false;
+                decimal subtotal = 0;
+                foreach (var pago in grp)
+                {
+                    var cuentas = pago.Funcionario?.CuentasPago ?? [];
+                    var cuenta = CuentaVigente.Seleccionar(cuentas, pago.TipoPago);
+
+                    ws.Cell(row, 1).Value = grp.Key;
+                    ws.Cell(row, 2).Value = pago.Funcionario?.Nombre ?? "";
+                    ws.Cell(row, 3).Value = pago.TipoPago;
+                    ws.Cell(row, 4).Value = cuenta?.Banco ?? "";
+                    ws.Cell(row, 5).Value = cuenta?.CuentaNueva ?? "";
+                    ws.Cell(row, 6).Value = cuenta?.CuentaVieja ?? "";
+                    ws.Cell(row, 7).Value = pago.Liquido;
+                    ws.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00";
+
+                    if (par)
+                        ws.Range(row, 1, row, colCount).Style.Fill.BackgroundColor = altFill;
+
+                    par = !par;
+                    subtotal += pago.Liquido;
+                    row++;
+                }
+
+                // Subtotal por tipo obra
+                var subtotalRange = ws.Range(row, 1, row, colCount - 1);
+                subtotalRange.Merge();
+                subtotalRange.Value = $"Subtotal {grp.Key}";
+                subtotalRange.Style.Fill.BackgroundColor = totalFill;
+                subtotalRange.Style.Font.Bold = true;
+                subtotalRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+                ws.Cell(row, colCount).Value = subtotal;
+                ws.Cell(row, colCount).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(row, colCount).Style.Fill.BackgroundColor = totalFill;
+                ws.Cell(row, colCount).Style.Font.Bold = true;
+                row++;
+            }
+
+            // Total sección
+            var totalRange = ws.Range(row, 1, row, colCount - 1);
+            totalRange.Merge();
+            totalRange.Value = $"TOTAL {titulo.ToUpper()}";
+            totalRange.Style.Fill.BackgroundColor = headerFill;
+            totalRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            totalRange.Style.Font.Bold = true;
+            totalRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+            ws.Cell(row, colCount).Value = filas.Sum(x => x.Liquido);
+            ws.Cell(row, colCount).Style.NumberFormat.Format = "#,##0.00";
+            ws.Cell(row, colCount).Style.Fill.BackgroundColor = headerFill;
+            ws.Cell(row, colCount).Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            ws.Cell(row, colCount).Style.Font.Bold = true;
+            row += 2;
+        }
+
+        EscribirSeccion("Red Pagos", redPagos);
+        EscribirSeccion("N-A Efectivo", naEfectivo);
+
+        // Total general final
+        decimal totalGeneral = redPagos.Sum(x => x.Liquido) + naEfectivo.Sum(x => x.Liquido);
+        var totalGeneralRange = ws.Range(row, 1, row, colCount - 1);
+        totalGeneralRange.Merge();
+        totalGeneralRange.Value = "TOTAL GENERAL";
+        totalGeneralRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#16324F");
+        totalGeneralRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+        totalGeneralRange.Style.Font.Bold = true;
+        totalGeneralRange.Style.Font.FontSize = 12;
+        totalGeneralRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+        ws.Cell(row, colCount).Value = totalGeneral;
+        ws.Cell(row, colCount).Style.NumberFormat.Format = "#,##0.00";
+        ws.Cell(row, colCount).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#16324F");
+        ws.Cell(row, colCount).Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+        ws.Cell(row, colCount).Style.Font.Bold = true;
+        ws.Cell(row, colCount).Style.Font.FontSize = 12;
+
+        // Ajustar ancho de columnas
+        ws.Column(1).Width = 18;
+        ws.Column(2).Width = 32;
+        ws.Column(3).Width = 20;
+        ws.Column(4).Width = 20;
+        ws.Column(5).Width = 22;
+        ws.Column(6).Width = 22;
+        ws.Column(7).Width = 16;
+
+        workbook.SaveAs(path);
+
+        await AuditarAsync(usuario, "Reportes", "Excel Planilla Pagos", periodo, Path.GetFileName(path));
+        return path;
+    }
+
+    public async Task<string> GenerarPorcentajeHorasExcelAsync(string periodo, string carpetaDestino, string usuario)
+    {
+        var periodoId = await ObtenerPeriodoId(periodo);
+
+        var horas = await _db.HorasMensuales
+            .AsNoTracking()
+            .Include(x => x.Funcionario)
+            .Include(x => x.Obra)
+            .Where(x => x.PeriodoId == periodoId && x.HorasEquivalentes > 0)
+            .ToListAsync();
+
+        Directory.CreateDirectory(carpetaDestino);
+        var path = Path.Combine(carpetaDestino, $"Porcentaje_Horas_{periodo}.xlsx");
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("Porcentaje Horas");
+
+        var azulOscuro  = ClosedXML.Excel.XLColor.FromHtml("#16324F");
+        var verdeClaro  = ClosedXML.Excel.XLColor.FromHtml("#E5F0E0");
+        var grisClaro   = ClosedXML.Excel.XLColor.FromHtml("#F3F4F6");
+        var grisTexto   = ClosedXML.Excel.XLColor.FromHtml("#6B7280");
+
+        string[] cols = ["N° Func.", "Funcionario", "N° Obra", "Obra", "Tipo", "Hs. Comunes", "Hs. Extras", "Hs. Lluvia", "Hs. Equiv.", "% en su tipo"];
+        int colCount = cols.Length;
+        int colEquiv = colCount - 1;
+        int colPct = colCount;
+
+        // Título
+        ws.Cell(1, 1).Value = $"Porcentaje de Horas por Funcionario - Período {periodo}";
+        ws.Cell(1, 1).Style.Font.Bold = true;
+        ws.Cell(1, 1).Style.Font.FontSize = 14;
+        ws.Range(1, 1, 1, colCount).Merge();
+
+        ws.Cell(2, 1).Value = $"Generado: {DateTime.Now:dd/MM/yyyy HH:mm}  |  Funcionarios con horas: {horas.Select(x => x.FuncionarioId).Distinct().Count()}  |  "
+            + "El % se calcula por separado dentro de cada tipo (Construcción e Industria y Comercio no se suman entre sí). N-A va en 0 y no se suma.";
+        ws.Cell(2, 1).Style.Font.Italic = true;
+        ws.Range(2, 1, 2, colCount).Merge();
+
+        // Cabecera de columnas
+        int row = 4;
+        for (int c = 0; c < colCount; c++)
+        {
+            var cell = ws.Cell(row, c + 1);
+            cell.Value = cols[c];
+            cell.Style.Fill.BackgroundColor = azulOscuro;
+            cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+        }
+        row++;
+
+        static TipoObra TipoDeHora(HoraMensual h) => h.Obra?.TipoObra ?? TipoObra.NA;
+        static int OrdenTipo(TipoObra t) => t switch
+        {
+            TipoObra.Construccion => 1,
+            TipoObra.IndustriaYComercio => 2,
+            TipoObra.Metalurgica => 3,
+            TipoObra.Administracion => 4,
+            _ => 9
+        };
+
+        var porFuncionario = horas
+            .GroupBy(x => x.FuncionarioId)
+            .OrderBy(g => g.First().Funcionario?.NumeroFuncionario)
+            .ToList();
+
+        var totalesPorTipo = new Dictionary<TipoObra, decimal>();
+
+        foreach (var grp in porFuncionario)
+        {
+            var func = grp.First().Funcionario;
+
+            // Cada tipo se reparte por separado: el % de una obra es sobre las horas de la persona en ese mismo tipo.
+            foreach (var tipoGrp in grp.GroupBy(TipoDeHora).OrderBy(g => OrdenTipo(g.Key)))
+            {
+                var tipo = tipoGrp.Key;
+                bool esNa = tipo == TipoObra.NA;
+                decimal totalTipo = tipoGrp.Sum(x => x.HorasEquivalentes);
+                totalesPorTipo[tipo] = totalesPorTipo.GetValueOrDefault(tipo) + totalTipo;
+                bool par = false;
+
+                foreach (var h in tipoGrp.OrderBy(x => x.Obra?.NumeroObra))
+                {
+                    double pct = !esNa && totalTipo > 0 ? (double)(h.HorasEquivalentes / totalTipo) : 0;
+
+                    ws.Cell(row, 1).Value = func?.NumeroFuncionario ?? "";
+                    ws.Cell(row, 2).Value = func?.Nombre ?? "";
+                    ws.Cell(row, 3).Value = h.Obra?.NumeroObra ?? "";
+                    ws.Cell(row, 4).Value = h.Obra?.Nombre ?? h.NombreObraExcel;
+                    ws.Cell(row, 5).Value = TipoObraParser.Texto(tipo);
+                    ws.Cell(row, 6).Value = h.HorasComunes;
+                    ws.Cell(row, 7).Value = h.HorasExtras;
+                    ws.Cell(row, 8).Value = h.HorasLluvia;
+                    ws.Cell(row, colEquiv).Value = h.HorasEquivalentes;
+                    for (int c = 6; c <= colEquiv; c++)
+                        ws.Cell(row, c).Style.NumberFormat.Format = "#,##0.00";
+                    ws.Cell(row, colPct).Value = pct;
+                    ws.Cell(row, colPct).Style.NumberFormat.Format = "0.00%";
+
+                    if (par)
+                        ws.Range(row, 1, row, colCount).Style.Fill.BackgroundColor = grisClaro;
+                    if (esNa)
+                    {
+                        ws.Range(row, 1, row, colCount).Style.Font.FontColor = grisTexto;
+                        ws.Range(row, 1, row, colCount).Style.Font.Italic = true;
+                    }
+
+                    par = !par;
+                    row++;
+                }
+
+                // N-A no lleva subtotal: va en 0 y no se suma.
+                if (esNa)
+                    continue;
+
+                var subtotalRange = ws.Range(row, 1, row, colEquiv - 1);
+                subtotalRange.Merge();
+                subtotalRange.Value = $"Total {TipoObraParser.Texto(tipo)} - {func?.Nombre ?? grp.Key.ToString()}";
+                subtotalRange.Style.Fill.BackgroundColor = verdeClaro;
+                subtotalRange.Style.Font.Bold = true;
+                subtotalRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+
+                ws.Cell(row, colEquiv).Value = totalTipo;
+                ws.Cell(row, colEquiv).Style.NumberFormat.Format = "#,##0.00";
+                ws.Cell(row, colPct).Value = totalTipo > 0 ? 1.0 : 0.0;
+                ws.Cell(row, colPct).Style.NumberFormat.Format = "0.00%";
+                ws.Cell(row, colPct).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                foreach (var c in new[] { colEquiv, colPct })
+                {
+                    ws.Cell(row, c).Style.Fill.BackgroundColor = verdeClaro;
+                    ws.Cell(row, c).Style.Font.Bold = true;
+                }
+                row++;
+            }
+        }
+
+        // Totales por tipo (cada tipo por separado; N-A se informa pero no se suma)
+        row++;
+        foreach (var (tipo, total) in totalesPorTipo.OrderBy(x => OrdenTipo(x.Key)))
+        {
+            bool esNa = tipo == TipoObra.NA;
+            var rango = ws.Range(row, 1, row, colEquiv - 1);
+            rango.Merge();
+            rango.Value = esNa ? "HORAS N-A (no se suman, van en 0)" : $"TOTAL HORAS {TipoObraParser.Texto(tipo)}";
+            rango.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+
+            ws.Cell(row, colEquiv).Value = total;
+            ws.Cell(row, colEquiv).Style.NumberFormat.Format = "#,##0.00";
+
+            var fila = ws.Range(row, 1, row, colCount);
+            fila.Style.Fill.BackgroundColor = esNa ? grisClaro : azulOscuro;
+            fila.Style.Font.FontColor = esNa ? grisTexto : ClosedXML.Excel.XLColor.White;
+            fila.Style.Font.Bold = true;
+            row++;
+        }
+
+        // Anchos de columna
+        ws.Column(1).Width = 12;
+        ws.Column(2).Width = 30;
+        ws.Column(3).Width = 10;
+        ws.Column(4).Width = 30;
+        ws.Column(5).Width = 22;
+        for (int c = 6; c <= colEquiv; c++)
+            ws.Column(c).Width = 12;
+        ws.Column(colPct).Width = 13;
+
+        // Congelar fila de cabecera
+        ws.SheetView.FreezeRows(4);
+
+        workbook.SaveAs(path);
+
+        await AuditarAsync(usuario, "Reportes", "Excel Porcentaje Horas", periodo, Path.GetFileName(path));
+        return path;
     }
 }
