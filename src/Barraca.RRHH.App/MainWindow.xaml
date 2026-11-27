@@ -424,7 +424,7 @@
                                         <TextBlock Text="{Binding BpsTasaNota}" Foreground="#B45309" VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap" MaxWidth="290"/>
                                     </StackPanel>
                                     <TextBlock Foreground="#6B7280" TextWrapping="Wrap" Margin="0,6,0,0"
-                                               Text="Es la suma, concepto por concepto de la factura de IyC, de descuento ÷ monto gravado (39,656 % en 2025). BPS de la Sede = nominal de ábaco de cada administrativo × tasa. Los metalúrgicos van igual, nominal × tasa, a su obra."/>
+                                               Text="Es la suma, concepto por concepto de la factura de IyC, de descuento ÷ monto gravado (39,656 % en 2025). BPS de la Sede = nominal de ábaco de cada administrativo × tasa. Los metalúrgicos van igual, nominal × tasa, y también se cargan en la Sede."/>
                                     <TextBlock Foreground="#6B7280" TextWrapping="Wrap" Margin="0,6,0,0"
                                                Text="Un importe vacío queda pendiente: no se toma como cero y no se reparte nada hasta completarlo o quitar la factura."/>
                                 </StackPanel>

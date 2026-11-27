@@ -39,15 +39,14 @@ public class RepartoBpsLineaDto
     public decimal Importe { get; set; }
 }
 
-// Persona cuyo BPS va por nominal × tasa: administrativos de la Sede y metalúrgicos (a su obra).
+// Persona cuyo BPS va por nominal × tasa y se carga en la factura de la Sede: administrativos y metalúrgicos.
 public class SedeBpsPersonaDto
 {
     public string NumeroFuncionario { get; set; } = string.Empty;
     public string Nombre { get; set; } = string.Empty;
     public decimal Nominal { get; set; }
     public decimal Bps { get; set; }
-    // "SEDE" o el número de la obra de los metalúrgicos.
-    public string NumeroObraDestino { get; set; } = "SEDE";
+    public bool EsMetalurgica { get; set; }
     public string Destino { get; set; } = "Sede";
 }
 
@@ -76,7 +75,7 @@ public class RepartoBpsResultadoDto
     public decimal FacturadoIndustria { get; set; }
     public decimal TasaSede { get; set; }
     public decimal Sede { get; set; }
-    // Metalúrgicos: nominal × tasa, a su obra.
+    // Metalúrgicos: nominal × tasa, se carga en la factura de la Sede.
     public decimal Metalurgica { get; set; }
     public decimal ARepartirConstruccion { get; set; }
     public decimal ARepartirIndustria { get; set; }
