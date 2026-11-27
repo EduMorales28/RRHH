@@ -21,9 +21,9 @@ public static class RepartoBps
 
     public sealed record PersonaSede(string NumeroFuncionario, string Nombre, decimal Nominal);
 
-    // Metalúrgico: tiene 1 hora de referencia en su obra, así que su BPS va como el de la Sede
-    // (nominal × tasa) directo a esa obra, y se resta del BPS de IyC (decisión del usuario, 26/11/2026).
-    public sealed record PersonaMetalurgica(string NumeroFuncionario, string Nombre, decimal Nominal, string NumeroObra, string NombreObra);
+    // Metalúrgico: tiene 1 hora de referencia en su obra, así que su BPS va como el de la Sede (nominal × tasa)
+    // y se resta del BPS de IyC (decisión del usuario, 26/11/2026). Se carga en la factura de la Sede (27/11/2026).
+    public sealed record PersonaMetalurgica(string NumeroFuncionario, string Nombre, decimal Nominal);
 
     private static readonly CultureInfo Uy = CultureInfo.GetCultureInfo("es-UY");
     private static string Pesos(decimal v) => v.ToString("#,##0.00", Uy);
@@ -62,9 +62,9 @@ public static class RepartoBps
         // Sede y metalúrgicos: nominal total de cada grupo × tasa, redondeado al centésimo, y por persona según su nominal.
         r.TasaSede = tasaSede ?? 0m;
         var porTasa = new List<SedeBpsPersonaDto>();
-        r.Sede = PorTasa(sede.Select(p => (p.NumeroFuncionario, p.Nombre, p.Nominal, "SEDE", "Sede")).ToList(), r.TasaSede, porTasa);
-        r.Metalurgica = PorTasa(metalurgicos.Select(p => (p.NumeroFuncionario, p.Nombre, p.Nominal, p.NumeroObra, $"Obra {p.NumeroObra}")).ToList(), r.TasaSede, porTasa);
-        r.PersonasSede = porTasa.OrderBy(p => p.NumeroObraDestino == "SEDE" ? 0 : 1).ThenBy(p => p.Nombre, StringComparer.Create(Uy, true)).ToList();
+        r.Sede = PorTasa(sede.Select(p => (p.NumeroFuncionario, p.Nombre, p.Nominal)).ToList(), r.TasaSede, false, porTasa);
+        r.Metalurgica = PorTasa(metalurgicos.Select(p => (p.NumeroFuncionario, p.Nombre, p.Nominal)).ToList(), r.TasaSede, true, porTasa);
+        r.PersonasSede = porTasa.OrderBy(p => p.EsMetalurgica).ThenBy(p => p.Nombre, StringComparer.Create(Uy, true)).ToList();
 
         r.ARepartirConstruccion = r.FacturadoConstruccion;
         r.ARepartirIndustria = r.FacturadoIndustria - r.Sede - r.Metalurgica;
@@ -107,13 +107,14 @@ public static class RepartoBps
             }
         }
 
-        r.FacturasSp = FacturasParaSp(periodo!, r, metalurgicos);
+        r.FacturasSp = FacturasParaSp(periodo!, r);
         return r;
     }
 
     // BPS de un grupo por nominal × tasa: total redondeado al centésimo y repartido entre las personas por su nominal.
-    private static decimal PorTasa(IReadOnlyList<(string Numero, string Nombre, decimal Nominal, string NumeroObra, string Destino)> personas,
-        decimal tasa, List<SedeBpsPersonaDto> salida)
+    // Los dos grupos (administrativos y metalúrgicos) se cargan en la factura de la Sede.
+    private static decimal PorTasa(IReadOnlyList<(string Numero, string Nombre, decimal Nominal)> personas,
+        decimal tasa, bool esMetalurgica, List<SedeBpsPersonaDto> salida)
     {
         if (personas.Count == 0)
             return 0m;
@@ -126,42 +127,38 @@ public static class RepartoBps
             Nombre = p.Nombre,
             Nominal = p.Nominal,
             Bps = porPersona[i] / 100m,
-            NumeroObraDestino = p.NumeroObra,
-            Destino = p.Destino
+            EsMetalurgica = esMetalurgica,
+            Destino = esMetalurgica ? "Sede · metalúrgico" : "Sede"
         }));
         return centesimos / 100m;
     }
 
     // Una factura por obra con C e IC sumados; la Sede (su BPS de administración más el reparto de sus horas)
     // va al depósito GASTOS2. Número = MMAAAA + obra, fecha = último día del mes, como en SP hasta 10/2025.
-    private static List<FacturaSpDto> FacturasParaSp(string periodo, RepartoBpsResultadoDto r, IReadOnlyList<PersonaMetalurgica> metalurgicos)
+    private static List<FacturaSpDto> FacturasParaSp(string periodo, RepartoBpsResultadoDto r)
     {
         var anio = int.Parse(periodo[..4], CultureInfo.InvariantCulture);
         var mes = int.Parse(periodo[5..], CultureInfo.InvariantCulture);
         var fecha = new DateTime(anio, mes, DateTime.DaysInMonth(anio, mes));
         var prefijo = $"{mes:00}{anio}";
 
-        // Lo de cada obra: su reparto por horas más el BPS de los metalúrgicos que van a esa obra.
-        var importes = r.Lineas.Where(l => !l.EsSede).Select(l => (l.NumeroObra, l.NombreObra, l.Importe))
-            .Concat(r.PersonasSede.Where(p => p.NumeroObraDestino != "SEDE")
-                .Select(p => (p.NumeroObraDestino, metalurgicos.First(m => m.NumeroObra == p.NumeroObraDestino).NombreObra, p.Bps)));
-
-        var porObra = importes
-            .GroupBy(x => x.Item1)
+        var porObra = r.Lineas.Where(l => !l.EsSede)
+            .GroupBy(l => l.NumeroObra)
             .Select(g => new FacturaSpDto
             {
                 Numero = prefijo + g.Key,
                 Fecha = fecha,
                 NumeroObra = g.Key,
                 Destino = $"Obra {g.Key}",
-                Observacion = g.Select(x => x.Item2).First(),
-                Importe = g.Sum(x => x.Item3)
+                Observacion = g.Select(l => l.NombreObra).First(),
+                Importe = g.Sum(l => l.Importe)
             })
             .OrderBy(f => int.TryParse(f.NumeroObra, out var n) ? n : int.MaxValue)
             .ThenBy(f => f.NumeroObra, StringComparer.Ordinal)
             .ToList();
 
-        var sede = r.Sede + r.Lineas.Where(l => l.EsSede).Sum(l => l.Importe);
+        // La Sede: BPS de los administrativos y de los metalúrgicos, más el reparto por horas de las obras SEDE.
+        var sede = r.Sede + r.Metalurgica + r.Lineas.Where(l => l.EsSede).Sum(l => l.Importe);
         if (sede > 0)
         {
             porObra.Add(new FacturaSpDto
