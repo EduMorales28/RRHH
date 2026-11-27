@@ -30,6 +30,8 @@ public class ObraEdicionDto
     public TipoObra TipoObra { get; set; } = TipoObra.Construccion;
     public string Cliente { get; set; } = string.Empty;
     public bool Activa { get; set; } = true;
+    // Número de la obra en SP si no es el mismo (vacío = el mismo número).
+    public string CodigoSp { get; set; } = string.Empty;
 }
 
 public class PagoEdicionDto

@@ -17,7 +17,8 @@ public static class RepartoBps
     public sealed record Factura(TipoObra Tipo, string Descripcion, decimal Importe);
 
     // Horas de una obra en un tipo (Construcción o IndustriaYComercio). EsSede: se carga en la factura de la Sede.
-    public sealed record HorasObra(TipoObra Tipo, string NumeroObra, string NombreObra, bool EsSede, decimal Horas);
+    // CodigoSp: número de la obra en SP si no es el mismo (vacío = NumeroObra).
+    public sealed record HorasObra(TipoObra Tipo, string NumeroObra, string NombreObra, bool EsSede, decimal Horas, string CodigoSp = "");
 
     public sealed record PersonaSede(string NumeroFuncionario, string Nombre, decimal Nominal);
 
@@ -98,6 +99,7 @@ public static class RepartoBps
                 {
                     TipoObra = tipo,
                     NumeroObra = filas[i].NumeroObra,
+                    CodigoSp = string.IsNullOrWhiteSpace(filas[i].CodigoSp) ? filas[i].NumeroObra : filas[i].CodigoSp.Trim(),
                     NombreObra = filas[i].NombreObra,
                     EsSede = filas[i].EsSede,
                     Horas = filas[i].Horas,
@@ -142,19 +144,35 @@ public static class RepartoBps
         var fecha = new DateTime(anio, mes, DateTime.DaysInMonth(anio, mes));
         var prefijo = $"{mes:00}{anio}";
 
-        var porObra = r.Lineas.Where(l => !l.EsSede)
+        // Una factura por obra del programa (C + IC). Va al número de la obra en SP; si dos obras van al mismo
+        // número de SP (por ejemplo, la 079), cada una lleva su factura con letra (79A, 79B) y su nombre en la
+        // observación, como en SP en 08/2025. El número de factura va sin ceros adelante, como «10202539» (obra 039).
+        var porObra = new List<FacturaSpDto>();
+        var obras = r.Lineas.Where(l => !l.EsSede)
             .GroupBy(l => l.NumeroObra)
-            .Select(g => new FacturaSpDto
+            .Select(g => (Sp: g.First().CodigoSp, Nombre: g.First().NombreObra, Numero: g.Key, Importe: g.Sum(l => l.Importe)));
+        foreach (var sp in obras.GroupBy(o => o.Sp))
+        {
+            var lista = sp.OrderBy(o => int.TryParse(o.Numero, out var n) ? n : int.MaxValue).ThenBy(o => o.Numero, StringComparer.Ordinal).ToList();
+            var codigo = sp.Key.TrimStart('0') is { Length: > 0 } sinCeros ? sinCeros : "0";
+            for (var i = 0; i < lista.Count; i++)
             {
-                Numero = prefijo + g.Key,
-                Fecha = fecha,
-                NumeroObra = g.Key,
-                Destino = $"Obra {g.Key}",
-                Observacion = g.Select(l => l.NombreObra).First(),
-                Importe = g.Sum(l => l.Importe)
-            })
+                porObra.Add(new FacturaSpDto
+                {
+                    Numero = prefijo + codigo + (lista.Count > 1 ? ((char)('A' + i)).ToString() : string.Empty),
+                    Fecha = fecha,
+                    NumeroObra = sp.Key,
+                    Destino = $"Obra {sp.Key}",
+                    Observacion = lista[i].Nombre,
+                    Importe = lista[i].Importe
+                });
+            }
+        }
+
+        porObra = porObra
             .OrderBy(f => int.TryParse(f.NumeroObra, out var n) ? n : int.MaxValue)
             .ThenBy(f => f.NumeroObra, StringComparer.Ordinal)
+            .ThenBy(f => f.Numero, StringComparer.Ordinal)
             .ToList();
 
         // La Sede: BPS de los administrativos y de los metalúrgicos, más el reparto por horas de las obras SEDE.

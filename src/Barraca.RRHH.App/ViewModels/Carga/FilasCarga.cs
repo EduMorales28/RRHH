@@ -394,12 +394,15 @@ public sealed class ObraFila : FilaEdicionBase
     private string _tipoObraTexto = OpcionesCarga.TiposObra[0];
     private string _cliente = "Almirtaun";
     private bool _activa = true;
+    private string _codigoSp = string.Empty;
 
     public string NumeroObra { get => _numero; set { if (EsNueva || _numero.Length == 0) Editar(ref _numero, (value ?? string.Empty).Trim()); } }
     public string Nombre { get => _nombre; set => Editar(ref _nombre, value ?? string.Empty); }
     public string TipoObraTexto { get => _tipoObraTexto; set => Editar(ref _tipoObraTexto, value ?? string.Empty); }
     public string Cliente { get => _cliente; set => Editar(ref _cliente, value ?? string.Empty); }
     public bool Activa { get => _activa; set => Editar(ref _activa, value); }
+    // Número de la obra en SP cuando no es el mismo del programa (por ejemplo, la 9201 va en SP a la 079).
+    public string CodigoSp { get => _codigoSp; set => Editar(ref _codigoSp, (value ?? string.Empty).Trim()); }
 
     public bool NumeroEditable => EsNueva;
     public override string TextoBusqueda => $"{NumeroObra} {Nombre} {TipoObraTexto} {Cliente}";
@@ -428,6 +431,7 @@ public sealed class ObraFila : FilaEdicionBase
             fila.TipoObraTexto = TipoObraParser.Texto(dto.TipoObra);
             fila.Cliente = dto.Cliente;
             fila.Activa = dto.Activa;
+            fila.CodigoSp = dto.CodigoSp;
         });
         return fila;
     }
@@ -439,6 +443,7 @@ public sealed class ObraFila : FilaEdicionBase
         Nombre = Nombre,
         TipoObra = TipoObraParser.Parse(TipoObraTexto),
         Cliente = Cliente,
-        Activa = Activa
+        Activa = Activa,
+        CodigoSp = CodigoSp
     };
 }

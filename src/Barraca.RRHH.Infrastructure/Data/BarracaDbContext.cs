@@ -56,6 +56,7 @@ public class BarracaDbContext : DbContext
             entity.Property(x => x.Nombre).HasMaxLength(200);
             entity.Property(x => x.Cliente).HasMaxLength(200);
             entity.Property(x => x.TipoObraOriginal).HasMaxLength(100);
+            entity.Property(x => x.CodigoSp).HasMaxLength(50);
         });
 
         modelBuilder.Entity<Periodo>(entity =>
