@@ -31,6 +31,8 @@ public class RepartoBpsLineaDto
     public TipoObra TipoObra { get; set; }
     public string Tipo => TipoObra == TipoObra.Construccion ? "Construcción" : "Ind. y Comercio";
     public string NumeroObra { get; set; } = string.Empty;
+    // Número de la obra en SP (el mismo NumeroObra salvo que la obra tenga otro "N° en SP").
+    public string CodigoSp { get; set; } = string.Empty;
     public string NombreObra { get; set; } = string.Empty;
     public bool EsSede { get; set; }
     public decimal Horas { get; set; }

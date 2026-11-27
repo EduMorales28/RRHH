@@ -43,6 +43,7 @@ public static class EsquemaBase
 
             // BPS por obra (26/11/2026): nominal de ábaco en cada pago, facturas BPS del mes y tasa de la Sede.
             await AgregarColumnaSqliteAsync(db, "PagosMensuales", "Nominal", "TEXT NOT NULL DEFAULT '0.0'");
+            await AgregarColumnaSqliteAsync(db, "Obras", "CodigoSp", "TEXT NOT NULL DEFAULT ''");
             await db.Database.ExecuteSqlRawAsync("""
                 CREATE TABLE IF NOT EXISTS "FacturasBps" (
                     "Id" INTEGER NOT NULL CONSTRAINT "PK_FacturasBps" PRIMARY KEY AUTOINCREMENT,
@@ -104,6 +105,8 @@ public static class EsquemaBase
                 END
                 IF COL_LENGTH('PagosMensuales', 'Nominal') IS NULL
                     ALTER TABLE PagosMensuales ADD Nominal decimal(18,2) NOT NULL CONSTRAINT DF_PagosMensuales_Nominal DEFAULT 0;
+                IF COL_LENGTH('Obras', 'CodigoSp') IS NULL
+                    ALTER TABLE Obras ADD CodigoSp nvarchar(50) NOT NULL CONSTRAINT DF_Obras_CodigoSp DEFAULT '';
                 IF OBJECT_ID('FacturasBps') IS NULL
                 BEGIN
                     CREATE TABLE FacturasBps (

@@ -311,6 +311,7 @@
                             <DataGridComboBoxColumn Header="Tipo de obra" Width="170" ItemsSource="{x:Static carga:OpcionesCarga.TiposObra}"
                                                     SelectedItemBinding="{Binding TipoObraTexto, UpdateSourceTrigger=PropertyChanged}"/>
                             <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" Width="160"/>
+                            <DataGridTextColumn Header="N° en SP" Binding="{Binding CodigoSp}" Width="80"/>
                             <DataGridCheckBoxColumn Header="Activa" Binding="{Binding Activa, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
                             <DataGridTextColumn Header="Problema / aviso" Binding="{Binding Problema, Mode=OneWay}" Width="*" IsReadOnly="True" CellStyle="{StaticResource CeldaProblema}"/>
                         </DataGrid.Columns>
@@ -318,7 +319,7 @@
                     <StackPanel Grid.Row="2" Margin="0,8,0,0">
                         <TextBlock Text="{Binding ObrasEdicion.Resumen}" Foreground="#475569"/>
                         <TextBlock Foreground="#6B7280" TextWrapping="Wrap" Margin="0,4,0,0"
-                                   Text="Los administrativos se cargan a la obra cuyo nombre contiene 'SEDE' de cada tipo. Para dar de baja una obra, destilde 'Activa'."/>
+                                   Text="Los administrativos se cargan a la obra cuyo nombre contiene 'SEDE' de cada tipo. Para dar de baja una obra, destilde 'Activa'. 'N° en SP': solo si en SP la obra tiene otro número (por ejemplo, 079); lo usa la planilla del BPS por obra."/>
                     </StackPanel>
                 </Grid>
             </TabItem>

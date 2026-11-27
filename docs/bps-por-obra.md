@@ -34,6 +34,10 @@ El Excel `BPS_por_obra_AAAA-MM.xlsx` sale igual que como se cargó el BPS en SP 
   - Un renglón con el insumo BPS, cantidad 1.
   - Imputada a la obra sin remito.
 - **Sede:** su BPS de administración, el de los metalúrgicos y el reparto de las obras SEDE van en una factura `MMAAAASEDE` al depósito GASTOS2.
+- **N° en SP:** si en SP la obra tiene otro número, se carga en la columna «N° en SP» de la pestaña Obras.
+  - La factura va a ese número de SP y el número de factura va sin ceros adelante, como `10202539` para la obra 039.
+  - Si dos obras van al mismo número de SP, cada una lleva su factura con letra (`10202579A`, `10202579B`) y su nombre en la observación, como en SP en 08/2025.
+  - Desde el 27/11/2026, la 9201 ESCUELA FLORES va en SP a la 079.
 
 El programa no escribe en SP: la planilla se carga a mano.
 
@@ -57,10 +61,11 @@ El programa no escribe en SP: la planilla se carga a mano.
 - `PagosMensuales.Nominal`: el nominal de cada pago. Lo completa «Cargar planilla ábaco», y se puede escribir a mano en Pagos del mes (por ejemplo, el de los metalúrgicos). Los meses cargados antes del 26/11/2026 lo tienen en 0: hay que volver a cargar la planilla de ábaco de IyC y guardar.
 - `FacturasBps`: las facturas BPS de cada mes.
 - `BpsPeriodos`: la tasa de la Sede de cada mes. Si un mes no tiene tasa propia, se sugiere la del último mes anterior que la tenga.
+- `Obras.CodigoSp`: el número de la obra en SP cuando es otro (vacío = el mismo).
 
 `EsquemaBase.ActualizarAsync` las agrega a las bases existentes sin borrar datos.
 
 ## Pendiente de confirmar
 
-- **Números de obra:** los del programa que no existen en SP, como la 9201 (Escuela Flores), hay que corregirlos en la planilla antes de cargar.
+- **Números de obra:** si una obra del programa no existe con ese número en SP, ponerle el «N° en SP» en la pestaña Obras antes de generar la planilla.
 - **Meses ya cargados en SP:** en SP hay totales de BPS al depósito GASTOS2 (por ejemplo, $524.976 el 25/05/2026). Para no duplicar el gasto, no se carga por obra un mes que ya está en SP como total.

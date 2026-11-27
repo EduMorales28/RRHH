@@ -172,7 +172,7 @@ public class DistribucionBpsService : IDistribucionBpsService
             .Where(x => x.Tipo is not null)
             .GroupBy(x => (x.Tipo!.Value, x.Item2.Id))
             .Select(g => new RepartoBps.HorasObra(g.Key.Value, g.First().Item2.NumeroObra, g.First().Item2.Nombre,
-                EsSede(g.First().Item2), g.Sum(x => x.HorasEquivalentes)))
+                EsSede(g.First().Item2), g.Sum(x => x.HorasEquivalentes), g.First().Item2.CodigoSp))
             .OrderBy(x => x.Tipo).ThenBy(x => int.TryParse(x.NumeroObra, out var n) ? n : int.MaxValue).ThenBy(x => x.NumeroObra)
             .ToList();
 

@@ -181,7 +181,8 @@ public class CargaMensualService : ICargaMensualService
                 Nombre = o.Nombre,
                 TipoObra = o.TipoObra,
                 Cliente = o.Cliente,
-                Activa = o.Activa
+                Activa = o.Activa,
+                CodigoSp = o.CodigoSp
             })
             .ToList();
     }
@@ -234,6 +235,7 @@ public class CargaMensualService : ICargaMensualService
             entidad.TipoObraOriginal = TipoObraParser.Texto(dto.TipoObra);
             entidad.Cliente = dto.Cliente.Trim();
             entidad.Activa = dto.Activa;
+            entidad.CodigoSp = (dto.CodigoSp ?? string.Empty).Trim();
         }
 
         Auditar(usuario, "Obras", "Editar obras", "Obra", "", $"Altas: {altas}. Modificadas: {cambios}.");
